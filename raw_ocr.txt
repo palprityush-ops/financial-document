@@ -1,0 +1,16 @@
+INVOICE DETAILS
+Bill no 77821 Date:- 12-08-2025,
+Seller : AlphaTech Solutions Pvt Ltd
+22B Industrial Area Phase 2 Bangalore Karnataka 560001
+Phone 9988776655 email alphatech@gmail.com
+Buyer XYZ Enterprises 4th Floor Sector 18 Noida UP
+Items Purchased
+Laptop Dell            Inspiron qty 2 rate 45500 total 91000
+Mouse Logitec        h qty5 rate 850 total4250
+Keyboard qty 3 rate1200 total3600
+Sub total 98850
+tax 18 percent 17793
+grand total amount payable 116643
+Payment mode bank transfer
+Account no 123456789 IFSC HDFC0002233
+Note goods once sold will not be taken back
