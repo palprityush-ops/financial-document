@@ -90,3 +90,10 @@ final_result = {
 
 print("\n===== FINAL VALIDATED OUTPUT =====\n")
 print(final_result)
+
+import json
+
+with open("output.json", "w", encoding="utf-8") as f:
+    json.dump(final_result, f, indent=4)
+
+print("JSON file created: output.json")

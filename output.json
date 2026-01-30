@@ -1,0 +1,11 @@
+{
+    "bill_number": "77821",
+    "invoice_date": "12-08-2025",
+    "subtotal": 98850,
+    "tax_amount": 17793,
+    "grand_total": 116643,
+    "validation": {
+        "total_match": true,
+        "issues": []
+    }
+}
