@@ -26,6 +26,12 @@ cleaned_text = clean_text(raw_text)
 
 print("\n===== CLEANED TEXT =====\n")
 print(cleaned_text)
+def safe_value(value, label, issues):
+    if value is None:
+        issues.append(f"{label} not found")
+        return None
+    return value
+
 
 # =========================
 # STEP 3: Information Extraction
@@ -36,7 +42,38 @@ bill_no_match = re.search(
     r'(bill|invoice)\s*(no|number)?\s*[:\-]?\s*(\d+)',
     cleaned_text
 )
-bill_number = bill_no_match.group(3) if bill_no_match else None
+issues = []
+# Date extraction (RAW)
+date_match = re.search(r'(\d{2}[-/]\d{2}[-/]\d{4})', cleaned_text)
+raw_invoice_date = date_match.group(1) if date_match else None
+
+# Grand total extraction (RAW)
+grand_total_match = re.search(
+    r'(grand\s*total|total\s*amount\s*payable)\s*(\d+)',
+    cleaned_text
+)
+raw_grand_total = int(grand_total_match.group(2)) if grand_total_match else None
+
+
+bill_number = safe_value(
+    bill_no_match.group(3) if bill_no_match else None,
+    "Bill number",
+    issues
+)
+
+invoice_date = safe_value(
+    raw_invoice_date,
+    "Invoice date",
+    issues
+)
+
+grand_total = safe_value(
+    raw_grand_total,
+    "Grand total",
+    issues
+)
+
+
 
 # Date
 date_match = re.search(r'(\d{2}[-/]\d{2}[-/]\d{4})', cleaned_text)
@@ -61,8 +98,17 @@ tax_amount = int(tax_match.group(1)) if tax_match else None
 # =========================
 # STEP 5: Validation Logic
 # =========================
-issues = []
 total_valid = False
+
+if subtotal is not None and tax_amount is not None and grand_total is not None:
+    calculated_total = subtotal + tax_amount
+    if abs(calculated_total - grand_total) <= 1:
+        total_valid = True
+    else:
+        issues.append("Subtotal + tax does not match grand total")
+else:
+    issues.append("Missing values for validation")
+
 
 if subtotal is not None and tax_amount is not None and grand_total is not None:
     calculated_total = subtotal + tax_amount
@@ -97,3 +143,10 @@ with open("output.json", "w", encoding="utf-8") as f:
     json.dump(final_result, f, indent=4)
 
 print("JSON file created: output.json")
+
+def safe_value(value, label, issues):
+    if value is None:
+        issues.append(f"{label} not found")
+        return None
+    return value
+
