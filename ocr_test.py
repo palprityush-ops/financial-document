@@ -1,3 +1,6 @@
+# Main controller script
+# Orchestrates OCR text processing, extraction, validation, and output generation
+
 import re
 import json
 

@@ -109,3 +109,11 @@ python ocr_test.py
     "total_match": true,
     "issues": []
   }}
+  ## 🔄 Workflow Explanation
+
+1. Invoice text is provided as OCR output.
+2. Text is cleaned to remove noise and unwanted characters.
+3. Required invoice fields are extracted using regex rules.
+4. Extracted values are validated using business logic.
+5. Final structured data is saved as JSON output.
+
