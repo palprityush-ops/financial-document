@@ -3,6 +3,8 @@ import json
 
 from utils import clean_text, safe_value
 from extractor import extract_invoice_data
+from validator import validate_totals
+
 
 
 # =========================
@@ -32,20 +34,14 @@ tax_amount = extracted["tax_amount"]
 grand_total = extracted["grand_total"]
 issues = extracted["issues"]
 
-
-# =========================
-# STEP 4: Validation Logic
-# =========================
-
-total_valid = False
-
-if subtotal is not None and tax_amount is not None and grand_total is not None:
-    if abs((subtotal + tax_amount) - grand_total) <= 1:
-        total_valid = True
-    else:
-        issues.append("Subtotal + tax does not match grand total")
-else:
-    issues.append("Missing values for validation")
+##
+total_valid = validate_totals(
+    subtotal,
+    tax_amount,
+    grand_total,
+    issues
+)
+##
 
 # =========================
 # FINAL STRUCTURED OUTPUT
