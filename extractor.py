@@ -1,12 +1,10 @@
-# Handles regex-based extraction of invoice fields from cleaned text
-
-import re
-from utils import safe_value
-
 def extract_invoice_data(cleaned_text):
+    import re
+    from utils import safe_value
+
     issues = []
 
-    # Bill / Invoice Number
+    # Bill number
     bill_no_match = re.search(
         r'(bill|invoice)\s*(no|number)?\s*[:\-]?\s*(\d+)',
         cleaned_text
@@ -17,7 +15,7 @@ def extract_invoice_data(cleaned_text):
         issues
     )
 
-    # Invoice Date
+    # Invoice date
     date_match = re.search(r'(\d{2}[-/]\d{2}[-/]\d{4})', cleaned_text)
     invoice_date = safe_value(
         date_match.group(1) if date_match else None,
@@ -33,7 +31,7 @@ def extract_invoice_data(cleaned_text):
         issues
     )
 
-    # Tax Amount
+    # Tax amount
     tax_match = re.search(r'tax\s*\d+\s*percent\s*(\d+)', cleaned_text)
     tax_amount = safe_value(
         int(tax_match.group(1)) if tax_match else None,
@@ -41,7 +39,7 @@ def extract_invoice_data(cleaned_text):
         issues
     )
 
-    # Grand Total
+    # Grand total
     grand_total_match = re.search(
         r'(grand\s*total|total\s*amount\s*payable)\s*(\d+)',
         cleaned_text
@@ -52,11 +50,28 @@ def extract_invoice_data(cleaned_text):
         issues
     )
 
+    # Confidence calculation
+    confidence = 1.0
+
+    if bill_number is None:
+        confidence -= 0.2
+    if invoice_date is None:
+        confidence -= 0.2
+    if subtotal is None:
+        confidence -= 0.2
+    if tax_amount is None:
+        confidence -= 0.2
+    if grand_total is None:
+        confidence -= 0.2
+
+    confidence = max(confidence, 0.0)
+
     return {
         "bill_number": bill_number,
         "invoice_date": invoice_date,
         "subtotal": subtotal,
         "tax_amount": tax_amount,
         "grand_total": grand_total,
-        "issues": issues
+        "issues": issues,
+        "confidence": round(confidence, 2)
     }

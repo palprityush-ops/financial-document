@@ -7,3 +7,10 @@ venv/
 
 # VS Code
 .vscode/
+
+# Generated outputs
+batch_output.json
+output.csv
+
+# Batch test data
+batch_texts/*.txt
