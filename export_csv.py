@@ -1,25 +1,30 @@
 import json
 import csv
 
-INPUT_JSON = "output.json"
-OUTPUT_CSV = "output.csv"
-
-with open(INPUT_JSON, "r", encoding="utf-8") as f:
+with open("batch_output.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
-flat_data = {
-    "bill_number": data.get("bill_number"),
-    "invoice_date": data.get("invoice_date"),
-    "subtotal": data.get("subtotal"),
-    "tax_amount": data.get("tax_amount"),
-    "grand_total": data.get("grand_total"),
-    "total_match": data.get("validation", {}).get("total_match"),
-    "issues": "; ".join(data.get("validation", {}).get("issues", []))
-}
+with open("output.csv", "w", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow([
+        "source_file",
+        "bill_number",
+        "invoice_date",
+        "subtotal",
+        "tax_amount",
+        "grand_total",
+        "total_match"
+    ])
 
-with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=flat_data.keys())
-    writer.writeheader()
-    writer.writerow(flat_data)
+    for item in data:
+        writer.writerow([
+            item.get("source_file"),
+            item.get("bill_number"),
+            item.get("invoice_date"),
+            item.get("subtotal"),
+            item.get("tax_amount"),
+            item.get("grand_total"),
+            item["validation"]["total_match"]
+        ])
 
-print("output.csv generated successfully")
+print("CSV export complete → output.csv")
