@@ -1,7 +1,27 @@
-def extract_invoice_data(cleaned_text):
-    import re
-    from utils import safe_value
+import re
+from utils import safe_value
 
+
+def extract_items(cleaned_text):
+    items = []
+
+    item_pattern = re.compile(
+        r'([a-z ]+?)\s+qty\s*(\d+)\s+rate\s*(\d+)\s+total\s*(\d+)',
+        re.IGNORECASE
+    )
+
+    for name, qty, rate, total in item_pattern.findall(cleaned_text):
+        items.append({
+            "name": name.strip(),
+            "qty": int(qty),
+            "rate": int(rate),
+            "total": int(total)
+        })
+
+    return items
+
+
+def extract_invoice_data(cleaned_text):
     issues = []
 
     # Bill number
@@ -31,7 +51,7 @@ def extract_invoice_data(cleaned_text):
         issues
     )
 
-    # Tax amount
+    # Tax
     tax_match = re.search(r'tax\s*\d+\s*percent\s*(\d+)', cleaned_text)
     tax_amount = safe_value(
         int(tax_match.group(1)) if tax_match else None,
@@ -40,29 +60,24 @@ def extract_invoice_data(cleaned_text):
     )
 
     # Grand total
-    grand_total_match = re.search(
+    grand_match = re.search(
         r'(grand\s*total|total\s*amount\s*payable)\s*(\d+)',
         cleaned_text
     )
     grand_total = safe_value(
-        int(grand_total_match.group(2)) if grand_total_match else None,
+        int(grand_match.group(2)) if grand_match else None,
         "Grand total",
         issues
     )
 
-    # Confidence calculation
-    confidence = 1.0
+    # ✅ ITEMS extraction (THIS WAS MISSING EARLIER)
+    items = extract_items(cleaned_text)
 
-    if bill_number is None:
-        confidence -= 0.2
-    if invoice_date is None:
-        confidence -= 0.2
-    if subtotal is None:
-        confidence -= 0.2
-    if tax_amount is None:
-        confidence -= 0.2
-    if grand_total is None:
-        confidence -= 0.2
+    # Confidence
+    confidence = 1.0
+    for field in [bill_number, invoice_date, subtotal, tax_amount, grand_total]:
+        if field is None:
+            confidence -= 0.2
 
     confidence = max(confidence, 0.0)
 
@@ -72,6 +87,7 @@ def extract_invoice_data(cleaned_text):
         "subtotal": subtotal,
         "tax_amount": tax_amount,
         "grand_total": grand_total,
+        "items": items,
         "issues": issues,
         "confidence": round(confidence, 2)
     }
