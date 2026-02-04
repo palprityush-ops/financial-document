@@ -1,119 +1,216 @@
-# Financial Document Analysis System (OCR-based)
+📄 Financial Document Analysis System (OCR-Based)
+📌 Project Overview
 
-##  Project Overview
-This project extracts structured information from unstructured financial documents
-(like invoices) using OCR and rule-based text processing.
+Financial documents such as invoices are often available in unstructured text form after OCR processing.
+Manual extraction and validation of such data is time-consuming and error-prone.
 
-The system converts invoice text into structured JSON data that can be
-used for analysis and validation.
+This project implements a rule-based Financial Document Analysis System that:
 
----
+Extracts structured information from OCR invoice text
 
-##  Objectives
-- Extract key invoice fields (bill number, date, totals)
-- Handle OCR noise and missing data safely
-- Validate financial consistency (subtotal + tax = total)
-- Generate structured JSON output
+Performs financial validation checks
 
----
+Processes invoices in batch
 
-##  System Architecture
+Generates structured JSON and CSV outputs
 
-Raw Invoice Text  
-↓  
-Text Cleaning  
-↓  
-Field Extraction  
-↓  
-Validation Logic  
-↓  
-Structured JSON Output
+Assigns a confidence score to indicate data reliability
 
----
+The system focuses on explainability and correctness, without relying on machine learning models.
 
-##  Project Structure
+🎯 Objectives
 
+Extract key invoice fields (bill number, date, totals)
+
+Extract line items (name, quantity, rate, total)
+
+Handle OCR noise and missing values safely
+
+Validate financial consistency:
+
+Item total validation
+
+Subtotal validation
+
+Subtotal + tax = grand total validation
+
+Generate structured outputs for analysis
+
+🏗 System Architecture
+OCR Invoice Text (.txt)
+        ↓
+Text Cleaning
+        ↓
+Regex-based Field Extraction
+        ↓
+Item-Level Extraction
+        ↓
+Validation Logic
+        ↓
+Confidence Scoring
+        ↓
+Structured Output (JSON / CSV)
+
+📂 Project Structure
 Mini project semester 4/
-├── ocr_test.py
-├── utils.py
 ├── extractor.py
-├── validator.py
-├── raw_ocr.txt
-├── output.json
-├── invoices/
-│   └── sample_invoices.pdf
+├── utils.py
+├── ocr_test.py
+├── batch_runner.py
+├── export_csv.py
+├── batch_texts/
+│   ├── invoice1.txt
+│   └── invoice2.txt
+├── batch_output.json
+├── output.csv
 ├── .gitignore
 └── README.md
 
+📄 File-wise Explanation
+ocr_test.py
+
+Used for testing extraction on a single invoice.
+
+Reads OCR text
+
+Cleans text
+
+Extracts invoice data
+
+Prints structured output
+
+batch_runner.py
+
+Main batch-processing engine.
+
+Reads multiple invoice text files
+
+Applies extraction and validation
+
+Generates consolidated JSON output
+
+Command:
+
+python batch_runner.py
+
+extractor.py
+
+Core extraction and validation logic.
+
+Extracts invoice header fields
+
+Extracts item-level data
+
+Validates:
+
+Item totals
+
+Subtotal consistency
+
+Grand total consistency
+
+Calculates confidence score
+
+utils.py
+
+Utility helper functions:
+
+clean_text() → removes OCR noise
+
+safe_value() → safely handles missing fields
+
+export_csv.py
+
+Converts JSON output into CSV format for Excel/audit use.
+
+Command:
+
+python export_csv.py
+
+🔍 Validation Logic (Key Feature)
+
+The system performs the following checks:
+
+✔ Item-Level Validation
+quantity × rate = item total
+
+✔ Subtotal Validation
+sum(item totals) = subtotal
+
+✔ Grand Total Validation
+subtotal + tax = grand total
 
 
----
+Any mismatch is reported in the issues field.
 
-##  File-wise Explanation
+📊 Confidence Scoring
 
-### ocr_test.py
-Main entry point of the system.
-Controls the complete workflow:
-- Reads OCR text
-- Cleans the text
-- Extracts invoice fields
-- Validates totals
-- Saves output to JSON
+A confidence score between 0.0 and 1.0 is assigned based on:
 
----
+Missing invoice fields
 
-### utils.py
-Contains reusable helper functions:
-- clean_text() → cleans OCR noise
-- safe_value() → handles missing values safely
+Invalid item calculations
 
----
+Financial mismatches
 
-### extractor.py
-Responsible for extracting invoice fields using regex:
-- Bill number
-- Invoice date
-- Subtotal
-- Tax amount
-- Grand total
+This score helps assess the reliability of OCR-extracted data.
 
----
-
-### validator.py
-Contains business rules:
-- Validates subtotal + tax against grand total
-- Reports validation issues
-
----
-
-## ▶️ How to Run
-
-1. Activate virtual environment
-2. Place OCR output in `raw_ocr.txt`
-3. Run the main script:
-
-```bash
+▶️ How to Run
+Single Invoice Test
 python ocr_test.py
 
+Batch Processing
+python batch_runner.py
 
+CSV Export
+python export_csv.py
 
-##The system generates a structured JSON output:
-
+📄 Sample Output (JSON)
 {
   "bill_number": "77821",
   "invoice_date": "12-08-2025",
   "subtotal": 98850,
   "tax_amount": 17793,
   "grand_total": 116643,
-  "validation": {
-    "total_match": true,
-    "issues": []
-  }}
-  ## 🔄 Workflow Explanation
+  "items": [
+    {
+      "name": "laptop dell inspiron",
+      "qty": 2,
+      "rate": 45500,
+      "total": 91000,
+      "calculated_total": 91000,
+      "valid": true
+    }
+  ],
+  "issues": [],
+  "confidence": 0.9
+}
 
-1. Invoice text is provided as OCR output.
-2. Text is cleaned to remove noise and unwanted characters.
-3. Required invoice fields are extracted using regex rules.
-4. Extracted values are validated using business logic.
-5. Final structured data is saved as JSON output.
+⚠ Limitations
 
+Works best with semi-structured invoice text
+
+Regex-based extraction may fail on highly irregular formats
+
+OCR accuracy directly affects results
+
+🚀 Future Scope
+
+NLP/ML-based entity extraction
+
+Support for multiple invoice templates
+
+Tax slab / GST analysis
+
+Web interface or REST API
+
+Database integration
+
+✅ Conclusion
+
+This project demonstrates a practical and explainable approach to financial document analysis.
+By combining OCR text processing with rule-based validation, the system ensures accuracy, transparency, and auditability, making it suitable for academic and real-world use.
+
+
+Note: Item names may contain extra text due to OCR noise.
+This is a known limitation of rule-based extraction.

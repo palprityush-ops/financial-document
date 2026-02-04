@@ -1,0 +1,4 @@
+bill_number,invoice_date,item_name,quantity,rate,item_total,calculated_total,item_valid
+77821,12-08-2025,noida up items purchased laptop dell inspiron,2,45500,91000,91000,True
+77821,12-08-2025,mouse logitec h,5,850,4250,4250,True
+77821,12-08-2025,keyboard,3,1200,3600,3600,True
