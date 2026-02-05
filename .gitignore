@@ -14,3 +14,16 @@ output.csv
 
 # Batch test data
 batch_texts/*.txt
+
+db/finance.db
+__pycache__/
+*.pyc
+
+# Generated outputs
+reports/
+exports/
+db/finance.db
+
+# Python cache
+__pycache__/
+*.pyc

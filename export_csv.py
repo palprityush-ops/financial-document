@@ -1,30 +1,34 @@
-import json
 import csv
+import json
 
-with open("batch_output.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
+def export_invoices_to_csv(
+    batch_output_path="batch_output.json",
+    output_csv_path="exports/invoices_export.csv"
+):
+    with open(batch_output_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-with open("output.csv", "w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow([
-        "source_file",
-        "bill_number",
-        "invoice_date",
-        "subtotal",
-        "tax_amount",
-        "grand_total",
-        "total_match"
-    ])
+    invoices = data.get("invoices", [])
 
-    for item in data:
+    with open(output_csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
         writer.writerow([
-            item.get("source_file"),
-            item.get("bill_number"),
-            item.get("invoice_date"),
-            item.get("subtotal"),
-            item.get("tax_amount"),
-            item.get("grand_total"),
-            item["validation"]["total_match"]
+            "source_file",
+            "bill_number",
+            "invoice_date",
+            "subtotal",
+            "tax_amount",
+            "grand_total",
+            "total_match"
         ])
 
-print("CSV export complete → output.csv")
+        for item in invoices:
+            writer.writerow([
+                item.get("source_file"),
+                item.get("bill_number"),
+                item.get("invoice_date"),
+                item.get("subtotal"),
+                item.get("tax_amount"),
+                item.get("grand_total"),
+                item.get("validation", {}).get("total_match")
+            ])
