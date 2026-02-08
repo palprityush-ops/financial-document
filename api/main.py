@@ -1,11 +1,14 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Header, Depends
 import shutil
 import os
 
-from db.operations import get_audit_logs
-from db.operations import get_invoices_by_risk
-from db.operations import get_invoices_by_date
-from db.operations import get_all_invoices, get_high_risk_invoices
+from db.operations import (
+    get_audit_logs,
+    get_invoices_by_risk,
+    get_invoices_by_date,
+    get_all_invoices,
+    get_high_risk_invoices
+)
 from batch_runner import run_batch_pipeline
 
 # -------------------------
@@ -16,8 +19,17 @@ app = FastAPI(title="Financial Document Analysis API")
 UPLOAD_DIR = "batch_texts"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+API_KEY = "secret-admin-key"
+
 # -------------------------
-# Health Check
+# Security dependency
+# -------------------------
+def verify_api_key(x_api_key: str = Header(...)):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+
+# -------------------------
+# Health Check (PUBLIC)
 # -------------------------
 @app.get("/")
 def health_check():
@@ -27,10 +39,13 @@ def health_check():
     }
 
 # -------------------------
-# Upload Invoice File
+# Upload Invoice File (PROTECTED)
 # -------------------------
 @app.post("/upload-invoice/")
-async def upload_invoice(file: UploadFile = File(...)):
+async def upload_invoice(
+    file: UploadFile = File(...),
+    _: str = Depends(verify_api_key)
+):
     if not file.filename.endswith(".txt"):
         raise HTTPException(
             status_code=400,
@@ -54,10 +69,10 @@ async def upload_invoice(file: UploadFile = File(...)):
     }
 
 # -------------------------
-# Run Batch Pipeline
+# Run Batch Pipeline (PROTECTED)
 # -------------------------
 @app.post("/run-batch/")
-def run_batch():
+def run_batch(_: str = Depends(verify_api_key)):
     try:
         summary = run_batch_pipeline()
         return {
@@ -71,7 +86,7 @@ def run_batch():
         )
 
 # -------------------------
-# Fetch All Invoices (PAGINATED)
+# Fetch All Invoices (PUBLIC)
 # -------------------------
 @app.get("/invoices")
 def fetch_all_invoices(
@@ -87,7 +102,7 @@ def fetch_all_invoices(
     }
 
 # -------------------------
-# Fetch High Risk Invoices (PAGINATED)
+# Fetch High Risk Invoices (PUBLIC)
 # -------------------------
 @app.get("/invoices/high-risk")
 def fetch_high_risk(
@@ -101,6 +116,10 @@ def fetch_high_risk(
         "count": len(data),
         "data": data
     }
+
+# -------------------------
+# Fetch Invoices by Risk (PUBLIC)
+# -------------------------
 @app.get("/invoices/by-risk")
 def fetch_invoices_by_risk(
     risk: str,
@@ -123,6 +142,9 @@ def fetch_invoices_by_risk(
         "data": data
     }
 
+# -------------------------
+# Fetch Invoices by Date (PUBLIC)
+# -------------------------
 @app.get("/invoices/by-date")
 def fetch_invoices_by_date(
     start_date: str,
@@ -140,10 +162,14 @@ def fetch_invoices_by_date(
         "data": data
     }
 
+# -------------------------
+# Audit Logs (PROTECTED)
+# -------------------------
 @app.get("/audit")
 def fetch_audit_logs(
     limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    _: str = Depends(verify_api_key)
 ):
     data = get_audit_logs(limit, offset)
     return {
