@@ -6,13 +6,16 @@ from utils import clean_text
 from extractor import extract_invoice_data
 from validator import validate_totals
 
-from db.operations import insert_invoice
 from db.database import init_db
+from db.operations import insert_invoice
+
 from analytics.analytics_engine import run_batch_analytics
-from reports.report_generator import generate_text_report
 from analytics.explainability import explain_invoice_risk
-from export_csv import export_invoices_to_csv
+
+from reports.report_generator import generate_text_report
 from reports.pdf_report_generator import generate_pdf_report
+
+from export_csv import export_invoices_to_csv
 
 
 INPUT_DIR = "batch_texts"
@@ -39,21 +42,19 @@ def run_batch_pipeline():
         extracted = extract_invoice_data(cleaned_text)
 
         total_valid = validate_totals(
-            extracted["subtotal"],
-            extracted["tax_amount"],
-            extracted["grand_total"],
-            extracted["issues"]
+            extracted.get("subtotal"),
+            extracted.get("tax_amount"),
+            extracted.get("grand_total"),
+            extracted.get("issues", [])
         )
 
         extracted["validation"] = {
             "total_match": total_valid,
-            "issues": extracted["issues"]
+            "issues": extracted.get("issues", [])
         }
 
         extracted["source_file"] = file
-
-        # Normalize fields for analytics
-        extracted["total_amount"] = extracted.get("grand_total", 0)
+        extracted["total_amount"] = extracted.get("grand_total")
         extracted["risk"] = extracted.get("risk_level", "LOW").lower()
 
         results.append(extracted)
@@ -62,17 +63,21 @@ def run_batch_pipeline():
     # Batch summary calculation
     # -------------------------
     total_invoices = len(results)
-
     low_risk = 0
     medium_risk = 0
     high_risk = 0
 
-    total_confidence = 0
-    total_grand_amount = 0
+    total_confidence = 0.0
+    total_grand_amount = 0.0
 
     for r in results:
-        total_confidence += r.get("confidence", 0)
-        total_grand_amount += r.get("grand_total", 0)
+        confidence = r.get("confidence")
+        if isinstance(confidence, (int, float)):
+            total_confidence += confidence
+
+        grand_total = r.get("grand_total")
+        if isinstance(grand_total, (int, float)):
+            total_grand_amount += grand_total
 
         if r.get("risk_level") == "LOW":
             low_risk += 1
@@ -89,7 +94,7 @@ def run_batch_pipeline():
         "average_confidence": round(
             total_confidence / total_invoices, 2
         ) if total_invoices > 0 else 0,
-        "total_grand_amount": total_grand_amount
+        "total_grand_amount": round(total_grand_amount, 2)
     }
 
     # -------------------------
@@ -106,7 +111,7 @@ def run_batch_pipeline():
     print("Batch processing complete. Output saved to", OUTPUT_FILE)
 
     # -------------------------
-    # Analytics + Report
+    # Analytics + Text Report
     # -------------------------
     analytics_result = run_batch_analytics(results)
     generate_text_report(analytics_result)
@@ -120,11 +125,13 @@ def run_batch_pipeline():
 
     print("Risk explainability added.")
 
+    # -------------------------
+    # Persist to Database
+    # -------------------------
     for inv in results:
-     insert_invoice(inv)
+        insert_invoice(inv)
 
     print("Invoices persisted to database.")
-
 
     # -------------------------
     # CSV Export
@@ -135,6 +142,8 @@ def run_batch_pipeline():
     # -------------------------
     # Audit Log
     # -------------------------
+    os.makedirs("reports", exist_ok=True)
+
     with open("reports/audit_log.txt", "w", encoding="utf-8") as f:
         f.write("AUDIT LOG - FINANCIAL DOCUMENT ANALYSIS SYSTEM\n")
         f.write("=" * 50 + "\n\n")

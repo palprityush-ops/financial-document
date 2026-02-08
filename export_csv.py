@@ -1,17 +1,26 @@
-import csv
 import json
+import csv
+import os
+
 
 def export_invoices_to_csv(
     batch_output_path="batch_output.json",
     output_csv_path="exports/invoices_export.csv"
 ):
+    # Ensure export directory exists
+    os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
+
+    # Load batch output
     with open(batch_output_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     invoices = data.get("invoices", [])
 
+    # Write CSV
     with open(output_csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
+
+        # Header
         writer.writerow([
             "source_file",
             "bill_number",
@@ -19,16 +28,25 @@ def export_invoices_to_csv(
             "subtotal",
             "tax_amount",
             "grand_total",
-            "total_match"
+            "confidence",
+            "risk_level",
+            "total_match",
+            "risk_explanation"
         ])
 
-        for item in invoices:
+        # Rows
+        for inv in invoices:
             writer.writerow([
-                item.get("source_file"),
-                item.get("bill_number"),
-                item.get("invoice_date"),
-                item.get("subtotal"),
-                item.get("tax_amount"),
-                item.get("grand_total"),
-                item.get("validation", {}).get("total_match")
+                inv.get("source_file"),
+                inv.get("bill_number"),
+                inv.get("invoice_date"),
+                inv.get("subtotal"),
+                inv.get("tax_amount"),
+                inv.get("grand_total"),
+                inv.get("confidence"),
+                inv.get("risk_level"),
+                inv.get("validation", {}).get("total_match"),
+                "; ".join(inv.get("risk_explanation", []))
             ])
+
+    print("Invoice CSV export generated:", output_csv_path)

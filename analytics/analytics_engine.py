@@ -8,6 +8,11 @@ def run_batch_analytics(batch_data):
     risk_analysis = analyze_risk(batch_data)
     item_analysis = analyze_items(batch_data)
 
+    assert "total_invoices" in batch_metrics
+    assert "total_amount" in batch_metrics
+    assert "average_amount" in batch_metrics
+    assert "average_confidence" in batch_metrics
+
     return {
         "batch_metrics": batch_metrics,
         "risk_analysis": risk_analysis,
