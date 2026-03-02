@@ -17,7 +17,6 @@ from reports.pdf_report_generator import generate_pdf_report
 
 from export_csv import export_invoices_to_csv
 
-
 INPUT_DIR = "batch_texts"
 OUTPUT_FILE = "batch_output.json"
 
@@ -45,12 +44,12 @@ def run_batch_pipeline():
             extracted.get("subtotal"),
             extracted.get("tax_amount"),
             extracted.get("grand_total"),
-            extracted.get("issues", [])
+            extracted.get("issues", []),
         )
 
         extracted["validation"] = {
             "total_match": total_valid,
-            "issues": extracted.get("issues", [])
+            "issues": extracted.get("issues", []),
         }
 
         extracted["source_file"] = file
@@ -91,19 +90,16 @@ def run_batch_pipeline():
         "low_risk": low_risk,
         "medium_risk": medium_risk,
         "high_risk": high_risk,
-        "average_confidence": round(
-            total_confidence / total_invoices, 2
-        ) if total_invoices > 0 else 0,
-        "total_grand_amount": round(total_grand_amount, 2)
+        "average_confidence": (
+            round(total_confidence / total_invoices, 2) if total_invoices > 0 else 0
+        ),
+        "total_grand_amount": round(total_grand_amount, 2),
     }
 
     # -------------------------
     # Final JSON output
     # -------------------------
-    final_output = {
-        "invoices": results,
-        "batch_summary": batch_summary
-    }
+    final_output = {"invoices": results, "batch_summary": batch_summary}
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(final_output, f, indent=4)

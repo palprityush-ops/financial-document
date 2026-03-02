@@ -16,5 +16,5 @@ def run_batch_analytics(batch_data):
     return {
         "batch_metrics": batch_metrics,
         "risk_analysis": risk_analysis,
-        "item_analysis": item_analysis
+        "item_analysis": item_analysis,
     }

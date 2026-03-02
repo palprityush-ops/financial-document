@@ -8,8 +8,6 @@ from utils import clean_text, safe_value
 from extractor import extract_invoice_data
 from validator import validate_totals
 
-
-
 # =========================
 # STEP 1: Load raw OCR text
 # =========================
@@ -38,12 +36,7 @@ grand_total = extracted["grand_total"]
 issues = extracted["issues"]
 
 ##
-total_valid = validate_totals(
-    subtotal,
-    tax_amount,
-    grand_total,
-    issues
-)
+total_valid = validate_totals(subtotal, tax_amount, grand_total, issues)
 ##
 
 # =========================
@@ -56,10 +49,7 @@ final_result = {
     "subtotal": subtotal,
     "tax_amount": tax_amount,
     "grand_total": grand_total,
-    "validation": {
-        "total_match": total_valid,
-        "issues": issues
-    }
+    "validation": {"total_match": total_valid, "issues": issues},
 }
 
 print("\n===== FINAL VALIDATED OUTPUT =====\n")

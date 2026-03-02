@@ -1,5 +1,6 @@
 # Contains business rules to validate financial totals
 
+
 def validate_totals(subtotal, tax_amount, grand_total, issues):
     total_valid = False
 

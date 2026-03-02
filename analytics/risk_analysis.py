@@ -1,9 +1,5 @@
 def analyze_risk(batch_data):
-    risk_distribution = {
-        "low": 0,
-        "medium": 0,
-        "high": 0
-    }
+    risk_distribution = {"low": 0, "medium": 0, "high": 0}
 
     for invoice in batch_data:
         risk = invoice["risk"]
@@ -22,5 +18,5 @@ def analyze_risk(batch_data):
     return {
         "risk_distribution": risk_distribution,
         "high_risk_percentage": high_risk_percentage,
-        "manual_review_required": manual_review_required
+        "manual_review_required": manual_review_required,
     }

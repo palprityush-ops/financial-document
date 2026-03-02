@@ -14,17 +14,15 @@ def calculate_batch_metrics(batch_data):
     total_amount = sum(amounts)
     total_invoices = len(batch_data)
 
-    average_amount = round(
-        total_amount / len(amounts), 2
-    ) if amounts else 0
+    average_amount = round(total_amount / len(amounts), 2) if amounts else 0
 
-    average_confidence = round(
-        sum(confidences) / len(confidences), 2
-    ) if confidences else 0
+    average_confidence = (
+        round(sum(confidences) / len(confidences), 2) if confidences else 0
+    )
 
     return {
         "total_invoices": total_invoices,
         "total_amount": total_amount,
         "average_amount": average_amount,
-        "average_confidence": average_confidence
+        "average_confidence": average_confidence,
     }
