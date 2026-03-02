@@ -1,143 +1,126 @@
-Evidentia — Financial Document Intelligence System
+# Evidentia — Financial Document Intelligence System
 
 Evidentia is a production-oriented financial document analysis platform that automates invoice extraction, validation, risk scoring, and explainability through a structured backend processing pipeline and REST API architecture.
 
 The system transforms unstructured financial documents into structured, validated, and risk-evaluated data for auditability and analytical insight.
 
-Overview
+---
+
+## Overview
 
 Evidentia processes financial documents through a multi-stage pipeline that performs:
 
-OCR text cleaning and preprocessing
+- OCR text cleaning and preprocessing  
+- Structured field extraction  
+- Data validation and integrity checks  
+- Confidence scoring  
+- Risk assessment  
+- Explainability generation  
+- Persistent storage and analytics reporting  
 
-Structured field extraction
-
-Data validation and integrity checks
-
-Confidence scoring
-
-Risk assessment
-
-Explainability generation
-
-Persistent storage and analytics reporting
-
-The backend is built with FastAPI and exposes secure REST endpoints.
+The backend is built with FastAPI and exposes secure REST endpoints.  
 A Streamlit-based frontend provides an interactive dashboard for exploration and filtering.
 
-Key Capabilities
+---
 
-Automated invoice field extraction
+## Key Capabilities
 
-Rule-based validation engine
+- Automated invoice field extraction  
+- Rule-based validation engine  
+- Risk scoring with explainability output  
+- Confidence scoring mechanism  
+- Batch processing support  
+- SQLite-based persistence layer  
+- API key–based authentication  
+- Pagination and filtering endpoints  
+- Continuous Integration with automated testing and formatting checks  
 
-Risk scoring with explainability output
+---
 
-Confidence scoring mechanism
+## System Architecture
 
-Batch processing support
+Client (Streamlit UI or API consumer)  
+→ FastAPI Application Layer  
+→ Processing Pipeline  
+→ SQLite Database  
 
-SQLite-based persistence layer
+### Processing Pipeline Stages
 
-API key–based authentication
-
-Pagination and filtering endpoints
-
-Continuous Integration with automated testing and formatting checks
-
-System Architecture
-
-Client (Streamlit UI or API consumer)
-→ FastAPI Application Layer
-→ Processing Pipeline
-→ SQLite Database
-
-Processing Pipeline Stages
-
-OCR Cleaning (process_text.py)
-
-Field Extraction (extractor.py)
-
-Validation (validator.py)
-
-Confidence & Risk Scoring (analytics/)
-
-Explainability Generation
-
-Persistence (db/)
+1. OCR Cleaning (`process_text.py`)  
+2. Field Extraction (`extractor.py`)  
+3. Validation (`validator.py`)  
+4. Confidence & Risk Scoring (`analytics/`)  
+5. Explainability Generation  
+6. Persistence (`db/`)  
 
 Each processed document is stored with structured metadata and scoring outputs for traceability.
 
-Technology Stack
-Backend
+---
 
-Python 3.x
+## Technology Stack
 
-FastAPI
+### Backend
+- Python 3.x  
+- FastAPI  
+- Uvicorn  
 
-Uvicorn
+### Frontend
+- Streamlit  
 
-Frontend
+### Database
+- SQLite  
 
-Streamlit
+### Analytics Layer
+- Custom rule-based risk and explainability engine  
 
-Database
+### Code Quality & CI
+- Black (formatting)  
+- Pytest (testing)  
+- GitHub Actions (CI pipeline)  
 
-SQLite
+---
 
-Analytics Layer
-
-Custom rule-based risk and explainability engine
-
-Code Quality & CI
-
-Black (formatting)
-
-Pytest (testing)
-
-GitHub Actions (CI pipeline)
-
-Project Structure
+## Project Structure
 financial-document/
 │
 ├── .github/workflows/
-│   └── ci.yml                    # GitHub Actions CI pipeline
+│ └── ci.yml
 │
-├── analytics/                    # Risk, metrics & explainability engine
-│   ├── analytics_engine.py
-│   ├── batch_metrics.py
-│   ├── explainability.py
-│   ├── item_analysis.py
-│   └── risk_analysis.py
+├── analytics/
+│ ├── analytics_engine.py
+│ ├── batch_metrics.py
+│ ├── explainability.py
+│ ├── item_analysis.py
+│ └── risk_analysis.py
 │
-├── api/                          # FastAPI backend
-│   ├── main.py                   # API entry point
-│   └── schemas.py                # Pydantic models
+├── api/
+│ ├── main.py
+│ └── schemas.py
 │
-├── db/                           # Database layer
-│   ├── database.py               # SQLite connection setup
-│   ├── operations.py             # CRUD operations
-│   └── finance.db                # SQLite database file
+├── db/
+│ ├── database.py
+│ ├── operations.py
+│ └── finance.db
 │
-├── frontend/                     # Streamlit dashboard
-│   ├── app.py                    # Frontend entry point
-│   ├── config.py
-│   ├── api/                      # API client utilities
-│   ├── components/               # Reusable UI components
-│   ├── pages/                    # Multi-page views
-│   └── utils/
+├── frontend/
+│ ├── app.py
+│ ├── config.py
+│ ├── api/
+│ ├── components/
+│ ├── pages/
+│ └── utils/
 │
 ├── invoices/
-│   └── sample_invoices.pdf
+│ └── sample_invoices.pdf
 │
 ├── tests/
-│   └── test_basic.py             # Pytest test suite
+│ └── test_basic.py
 │
-├── batch_runner.py               # Batch execution controller
-├── extractor.py                  # Invoice extraction logic
-├── validator.py                  # Validation rules engine
-├── process_text.py               # OCR text cleaning
-├── export_csv.py                 # CSV export utilities
+├── batch_runner.py
+├── extractor.py
+├── validator.py
+├── process_text.py
+├── export_csv.py
 ├── export_items_csv.py
 │
 ├── requirements.txt
@@ -145,23 +128,33 @@ financial-document/
 ├── .gitattributes
 ├── .gitignore
 └── README.md
-Running the Project Locally
-1. Clone the Repository
+
+---
+
+## Running the Project Locally
+
+### 1. Clone the Repository
+
+```bash
 git clone https://github.com/YOUR_USERNAME/financial-document.git
 cd financial-document
+
 2. Create Virtual Environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
+
 3. Start Backend
 uvicorn api.main:app --reload
 
-The API will be available at:
+API available at:
 
 http://127.0.0.1:8000
+
 4. Start Frontend
 streamlit run frontend/app.py
+
 API Capabilities
 
 Upload and process invoice documents
@@ -212,7 +205,7 @@ Run tests locally:
 
 pytest tests
 
-Formatting validation:
+Check formatting:
 
 black --check .
 Future Improvements
@@ -231,7 +224,20 @@ Role-based access control
 
 Author
 
-PRITYUSH PAL
-ISHIKA BHARTI
+Prityush Pal
 BTech — Computer Science
 Financial Document Analysis System Project
+
+
+---
+
+After pasting:
+
+1. Save file  
+2. Commit  
+3. Push  
+4. Refresh GitHub  
+
+Font will now render correctly with proper section separation.
+
+If it still looks wrong, then you pasted outside code fences or removed `#` accidentally.
