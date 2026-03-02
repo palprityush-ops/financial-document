@@ -1,14 +1,19 @@
 # Evidentia — Financial Document Intelligence System
 
-Evidentia is a production-oriented financial document analysis platform that automates invoice extraction, validation, risk scoring, and explainability through a structured backend processing pipeline and REST API architecture.
+![Python](https://img.shields.io/badge/Python-3.x-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
+![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-red)
+![CI](https://github.com/YOUR_USERNAME/financial-document/actions/workflows/ci.yml/badge.svg)
 
-The system transforms unstructured financial documents into structured, validated, and risk-evaluated data for auditability and analytical insight.
+A production-oriented financial document analysis platform that automates invoice extraction, validation, risk scoring, and explainability through a structured backend processing pipeline and REST API architecture.
 
 ---
 
 ## Overview
 
-Evidentia processes financial documents through a multi-stage pipeline that performs:
+Evidentia transforms unstructured financial documents into structured, validated, and risk-evaluated data for auditability and analytical insight.
+
+The system processes invoices through a multi-stage pipeline that performs:
 
 - OCR text cleaning and preprocessing  
 - Structured field extraction  
@@ -19,11 +24,11 @@ Evidentia processes financial documents through a multi-stage pipeline that perf
 - Persistent storage and analytics reporting  
 
 The backend is built with FastAPI and exposes secure REST endpoints.  
-A Streamlit-based frontend provides an interactive dashboard for exploration and filtering.
+A Streamlit-based frontend provides an interactive dashboard for document exploration and filtering.
 
 ---
 
-## Key Capabilities
+## Core Capabilities
 
 - Automated invoice field extraction  
 - Rule-based validation engine  
@@ -39,7 +44,7 @@ A Streamlit-based frontend provides an interactive dashboard for exploration and
 
 ## System Architecture
 
-Client (Streamlit UI or API consumer)  
+Client (Streamlit UI or API Consumer)  
 → FastAPI Application Layer  
 → Processing Pipeline  
 → SQLite Database  
@@ -70,9 +75,6 @@ Each processed document is stored with structured metadata and scoring outputs f
 ### Database
 - SQLite  
 
-### Analytics Layer
-- Custom rule-based risk and explainability engine  
-
 ### Code Quality & CI
 - Black (formatting)  
 - Pytest (testing)  
@@ -81,6 +83,8 @@ Each processed document is stored with structured metadata and scoring outputs f
 ---
 
 ## Project Structure
+
+
 financial-document/
 │
 ├── .github/workflows/
@@ -129,6 +133,7 @@ financial-document/
 ├── .gitignore
 └── README.md
 
+
 ---
 
 ## Running the Project Locally
@@ -138,23 +143,19 @@ financial-document/
 ```bash
 git clone https://github.com/YOUR_USERNAME/financial-document.git
 cd financial-document
-
 2. Create Virtual Environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
-
 3. Start Backend
 uvicorn api.main:app --reload
 
 API available at:
 
 http://127.0.0.1:8000
-
 4. Start Frontend
 streamlit run frontend/app.py
-
 API Capabilities
 
 Upload and process invoice documents
@@ -173,7 +174,7 @@ API key authentication middleware
 
 Risk and Explainability Engine
 
-The system evaluates invoices using rule-based scoring mechanisms based on:
+Invoices are evaluated using structured scoring mechanisms based on:
 
 Missing mandatory fields
 
@@ -189,7 +190,7 @@ Each flagged record includes a structured explanation describing why it was cate
 
 Continuous Integration
 
-The project includes a GitHub Actions workflow that automatically:
+The GitHub Actions workflow automatically:
 
 Installs dependencies
 
@@ -197,7 +198,7 @@ Validates code formatting (Black)
 
 Executes automated tests (Pytest)
 
-The pipeline runs on every push to the main branch to ensure code quality and reproducibility.
+The pipeline runs on every push to the main branch to ensure reliability and consistency.
 
 Testing
 
@@ -208,36 +209,8 @@ pytest tests
 Check formatting:
 
 black --check .
-Future Improvements
-
-Integration with production-grade OCR engines
-
-Machine learning–based anomaly detection
-
-Migration to PostgreSQL for production use
-
-Docker containerization
-
-Cloud deployment
-
-Role-based access control
-
 Author
 
 Prityush Pal
 BTech — Computer Science
 Financial Document Analysis System Project
-
-
----
-
-After pasting:
-
-1. Save file  
-2. Commit  
-3. Push  
-4. Refresh GitHub  
-
-Font will now render correctly with proper section separation.
-
-If it still looks wrong, then you pasted outside code fences or removed `#` accidentally.
