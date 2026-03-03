@@ -2,48 +2,65 @@ import streamlit as st
 import pandas as pd
 from api.client import get_all_invoices
 
-st.title("📊 Risk Command Center")
-st.caption("Executive overview of financial risk intelligence signals.")
+st.title("Risk Overview")
+st.caption("Executive summary of financial document risk exposure.")
 
 st.markdown("---")
 
-data = get_all_invoices()
+response = get_all_invoices()
 
-if "error" in data:
-    st.error(f"API Error: {data['error']}")
+if "error" in response:
+    st.error(response["error"])
     st.stop()
 
+data = response.get("data", [])
+
 if not data:
-    st.warning("No invoices found.")
+    st.warning("No invoices available.")
     st.stop()
 
 df = pd.DataFrame(data)
 
-# -------------------
+# -------------------------
 # Executive Metrics
-# -------------------
+# -------------------------
 
-total_invoices = len(df)
-high_risk = len(df[df["risk_level"] == "high"])
-medium_risk = len(df[df["risk_level"] == "medium"])
-low_risk = len(df[df["risk_level"] == "low"])
-avg_risk_score = round(df["risk_score"].mean(), 2)
+total = len(df)
+high = len(df[df["risk"] == "high"])
+medium = len(df[df["risk"] == "medium"])
+low = len(df[df["risk"] == "low"])
+
+high_exposure = round((high / total) * 100, 2) if total > 0 else 0
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Total Invoices", total_invoices)
-col2.metric("High Risk", high_risk)
-col3.metric("Average Risk Score", avg_risk_score)
-col4.metric("Medium Risk", medium_risk)
+col1.metric("Total Invoices", total)
+col2.metric("High Risk Invoices", high)
+col3.metric("High Risk Exposure %", f"{high_exposure}%")
+col4.metric("Average Confidence", round(df["confidence"].mean(), 2))
 
 st.markdown("---")
 
-# -------------------
-# Risk Distribution
-# -------------------
+# -------------------------
+# Risk Distribution Chart
+# -------------------------
 
 st.subheader("Risk Distribution")
 
-risk_counts = df["risk_level"].value_counts()
-
+risk_counts = df["risk"].value_counts()
 st.bar_chart(risk_counts)
+
+st.markdown("---")
+
+# -------------------------
+# Recommended Review Panel
+# -------------------------
+
+st.subheader("Recommended Review")
+
+if high > 0:
+    st.error(f"{high} invoices require immediate review.")
+elif medium > 0:
+    st.warning(f"{medium} invoices require monitoring.")
+else:
+    st.success("No high-risk invoices detected.")
