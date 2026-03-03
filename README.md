@@ -84,41 +84,42 @@ Each processed document is stored with structured metadata and scoring outputs f
 
 ## Project Structure
 
-
+```
 financial-document/
 │
-├── .github/workflows/
-│ └── ci.yml
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── analytics/
-│ ├── analytics_engine.py
-│ ├── batch_metrics.py
-│ ├── explainability.py
-│ ├── item_analysis.py
-│ └── risk_analysis.py
+│   ├── analytics_engine.py
+│   ├── batch_metrics.py
+│   ├── explainability.py
+│   ├── item_analysis.py
+│   └── risk_analysis.py
 │
 ├── api/
-│ ├── main.py
-│ └── schemas.py
+│   ├── main.py
+│   └── schemas.py
 │
 ├── db/
-│ ├── database.py
-│ ├── operations.py
-│ └── finance.db
+│   ├── database.py
+│   ├── operations.py
+│   └── finance.db
 │
 ├── frontend/
-│ ├── app.py
-│ ├── config.py
-│ ├── api/
-│ ├── components/
-│ ├── pages/
-│ └── utils/
+│   ├── app.py
+│   ├── config.py
+│   ├── api/
+│   ├── components/
+│   ├── pages/
+│   └── utils/
 │
 ├── invoices/
-│ └── sample_invoices.pdf
+│   └── sample_invoices.pdf
 │
 ├── tests/
-│ └── test_basic.py
+│   └── test_basic.py
 │
 ├── batch_runner.py
 ├── extractor.py
@@ -132,7 +133,7 @@ financial-document/
 ├── .gitattributes
 ├── .gitignore
 └── README.md
-
+```
 
 ---
 
@@ -143,74 +144,93 @@ financial-document/
 ```bash
 git clone https://github.com/YOUR_USERNAME/financial-document.git
 cd financial-document
-2. Create Virtual Environment
+```
+
+### 2. Create Virtual Environment
+
+```bash
 python -m venv venv
 venv\Scripts\activate        # Windows
 source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
-3. Start Backend
+```
+
+### 3. Start Backend
+
+```bash
 uvicorn api.main:app --reload
+```
 
 API available at:
 
+```
 http://127.0.0.1:8000
-4. Start Frontend
+```
+
+### 4. Start Frontend
+
+```bash
 streamlit run frontend/app.py
-API Capabilities
+```
 
-Upload and process invoice documents
+---
 
-Batch processing of multiple invoices
+## API Capabilities
 
-Pagination of processed records
+- Upload and process invoice documents  
+- Batch processing of multiple invoices  
+- Pagination of processed records  
+- Risk-based filtering  
+- Date-based filtering  
+- Audit endpoint access  
+- API key authentication middleware  
 
-Risk-based filtering
+---
 
-Date-based filtering
-
-Audit endpoint access
-
-API key authentication middleware
-
-Risk and Explainability Engine
+## Risk and Explainability Engine
 
 Invoices are evaluated using structured scoring mechanisms based on:
 
-Missing mandatory fields
-
-Inconsistent dates
-
-Suspicious numeric values
-
-Structural anomalies
-
-Low extraction confidence
+- Missing mandatory fields  
+- Inconsistent dates  
+- Suspicious numeric values  
+- Structural anomalies  
+- Low extraction confidence  
 
 Each flagged record includes a structured explanation describing why it was categorized as risky.
 
-Continuous Integration
+---
+
+## Continuous Integration
 
 The GitHub Actions workflow automatically:
 
-Installs dependencies
-
-Validates code formatting (Black)
-
-Executes automated tests (Pytest)
+- Installs dependencies  
+- Validates code formatting (Black)  
+- Executes automated tests (Pytest)  
 
 The pipeline runs on every push to the main branch to ensure reliability and consistency.
 
-Testing
+---
+
+## Testing
 
 Run tests locally:
 
+```bash
 pytest tests
+```
 
 Check formatting:
 
+```bash
 black --check .
-Author
+```
 
-Prityush Pal
-BTech — Computer Science
-Financial Document Analysis System Project
+---
+
+## Author
+
+Prityush Pal  
+BTech — Computer Science  
+Financial Document Analysis System Project  
