@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2 class="mb-4">Audit Logs</h2>
+
+<table class="table table-striped table-bordered">
+
+<thead class="table-dark">
+<tr>
+<th>File</th>
+<th>Risk</th>
+<th>Confidence</th>
+<th>Reasons</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for log in logs %}
+
+<tr>
+
+<td>{{ log.source_file }}</td>
+
+<td>
+{% if log.risk == "high" %}
+<span class="badge bg-danger">High</span>
+{% elif log.risk == "medium" %}
+<span class="badge bg-warning text-dark">Medium</span>
+{% else %}
+<span class="badge bg-success">Low</span>
+{% endif %}
+</td>
+
+<td>{{ log.confidence }}</td>
+
+<td>
+<ul>
+{% for r in log.reasons %}
+<li>{{ r }}</li>
+{% endfor %}
+</ul>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+{% endblock %}

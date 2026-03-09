@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Run Batch Processing</h2>
+
+<form method="post">
+
+<button type="submit">
+Run Batch
+</button>
+
+</form>
+
+{% if message %}
+<p>{{ message }}</p>
+{% endif %}
+
+{% endblock %}

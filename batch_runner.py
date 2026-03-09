@@ -29,6 +29,8 @@ def run_batch_pipeline():
     # Process each invoice file
     # -------------------------
     for file in os.listdir(INPUT_DIR):
+
+        # only process invoice text files
         if not file.endswith(".txt"):
             continue
 
@@ -54,7 +56,10 @@ def run_batch_pipeline():
 
         extracted["source_file"] = file
         extracted["total_amount"] = extracted.get("grand_total")
-        extracted["risk"] = extracted.get("risk_level", "LOW").lower()
+
+        # normalize risk value
+        risk_level = extracted.get("risk_level", "LOW")
+        extracted["risk"] = risk_level.lower()
 
         results.append(extracted)
 
@@ -62,6 +67,7 @@ def run_batch_pipeline():
     # Batch summary calculation
     # -------------------------
     total_invoices = len(results)
+
     low_risk = 0
     medium_risk = 0
     high_risk = 0
@@ -70,6 +76,7 @@ def run_batch_pipeline():
     total_grand_amount = 0.0
 
     for r in results:
+
         confidence = r.get("confidence")
         if isinstance(confidence, (int, float)):
             total_confidence += confidence
@@ -78,11 +85,13 @@ def run_batch_pipeline():
         if isinstance(grand_total, (int, float)):
             total_grand_amount += grand_total
 
-        if r.get("risk_level") == "LOW":
+        risk_level = r.get("risk_level", "LOW")
+
+        if risk_level == "LOW":
             low_risk += 1
-        elif r.get("risk_level") == "MEDIUM":
+        elif risk_level == "MEDIUM":
             medium_risk += 1
-        elif r.get("risk_level") == "HIGH":
+        elif risk_level == "HIGH":
             high_risk += 1
 
     batch_summary = {
@@ -99,7 +108,10 @@ def run_batch_pipeline():
     # -------------------------
     # Final JSON output
     # -------------------------
-    final_output = {"invoices": results, "batch_summary": batch_summary}
+    final_output = {
+        "invoices": results,
+        "batch_summary": batch_summary,
+    }
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(final_output, f, indent=4)
