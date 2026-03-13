@@ -73,7 +73,9 @@ def upload():
                     message = f"'{file.filename}' uploaded successfully! Ready for batch processing."
                     success = True
                 else:
-                    message = f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                    message = (
+                        f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                    )
             except Exception as e:
                 message = f"Could not connect to API: {str(e)}"
 
