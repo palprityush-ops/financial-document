@@ -1,0 +1,166 @@
+{% extends "layout.html" %}
+{% block title %}Upload Invoice{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up fade-up-1">
+  <h1>// UPLOAD INVOICE</h1>
+  <p>Upload a .txt invoice file for analysis</p>
+</div>
+
+<div class="row g-4">
+  <!-- Upload Form -->
+  <div class="col-md-7 fade-up fade-up-2">
+    <div class="card">
+      <div class="card-header-custom">Upload Invoice File</div>
+      <div class="p-4">
+
+        {% if message %}
+          {% if success %}
+          <div class="ev-alert success">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ message }}
+          </div>
+          {% else %}
+          <div class="ev-alert error">
+            <i class="bi bi-x-circle-fill"></i>
+            {{ message }}
+          </div>
+          {% endif %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" id="uploadForm">
+
+          <!-- Drag & Drop Zone -->
+          <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <i class="bi bi-cloud-upload" style="display:block; margin-bottom:12px;"></i>
+            <p style="color:var(--text); font-size:0.9rem; margin-bottom:4px;">
+              Drag & drop your invoice file here
+            </p>
+            <p style="color:var(--muted); font-size:0.78rem;">
+              Supports: .txt format only
+            </p>
+            <input type="file" id="fileInput" name="file" accept=".txt"
+                   style="display:none;" onchange="handleFileSelect(this)"/>
+          </div>
+
+          <!-- Selected File Display -->
+          <div id="fileDisplay" style="display:none; margin-top:16px; padding:12px 16px;
+               background:var(--surface2); border-radius:8px; display:none;
+               align-items:center; gap:12px;">
+            <i class="bi bi-file-text" style="color:var(--accent); font-size:1.2rem;"></i>
+            <div style="flex:1;">
+              <div id="fileName" style="font-size:0.85rem; font-weight:500;"></div>
+              <div id="fileSize" style="font-size:0.75rem; color:var(--muted);"></div>
+            </div>
+            <button type="button" onclick="clearFile()"
+                    style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:1rem;">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+
+          <button type="submit" class="btn-ev" id="submitBtn"
+                  style="margin-top:20px; width:100%; opacity:0.4; pointer-events:none;">
+            <i class="bi bi-cloud-upload"></i> Upload & Analyse
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="col-md-5 fade-up fade-up-3">
+    <div class="card mb-3">
+      <div class="card-header-custom">What happens after upload?</div>
+      <div class="p-4">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          {% for step in [
+            ('1', 'bi-file-text', 'File Received', 'Invoice .txt file is saved securely'),
+            ('2', 'bi-cpu', 'Text Processing', 'OCR cleaning and field extraction'),
+            ('3', 'bi-shield-check', 'Validation', 'Math checks and integrity validation'),
+            ('4', 'bi-graph-up', 'Risk Scoring', 'Confidence and risk level assigned'),
+            ('5', 'bi-database', 'Stored', 'Result saved to database with audit log')
+          ] %}
+          <div style="display:flex; align-items:flex-start; gap:12px;">
+            <div style="width:28px; height:28px; border-radius:50%;
+                        background:rgba(79,110,247,0.15); border:1px solid rgba(79,110,247,0.3);
+                        display:flex; align-items:center; justify-content:center;
+                        font-size:0.7rem; font-family:var(--font-mono); color:var(--accent); flex-shrink:0;">
+              {{ step[0] }}
+            </div>
+            <div>
+              <div style="font-size:0.85rem; font-weight:500; margin-bottom:2px;">
+                <i class="bi {{ step[1] }}" style="margin-right:5px; color:var(--accent);"></i>
+                {{ step[2] }}
+              </div>
+              <div style="font-size:0.78rem; color:var(--muted);">{{ step[3] }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-custom">Sample Invoice Format</div>
+      <div class="p-4">
+        <pre style="font-family:var(--font-mono); font-size:0.72rem;
+                    color:var(--muted); white-space:pre-wrap; line-height:1.7;">Invoice No: 1042
+Date: 12-03-2025
+Vendor: ABC Traders
+
+Items Purchased
+Laptop Dell qty 2 rate 45500 total 91000
+
+Sub Total 91000
+Tax 18 percent 16380
+Grand Total 107380</pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const submitBtn = document.getElementById('submitBtn');
+const fileDisplay = document.getElementById('fileDisplay');
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    fileInput.files = e.dataTransfer.files;
+    showFile(file);
+  }
+});
+
+function handleFileSelect(input) {
+  if (input.files[0]) showFile(input.files[0]);
+}
+
+function showFile(file) {
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  fileDisplay.style.display = 'flex';
+  submitBtn.style.opacity = '1';
+  submitBtn.style.pointerEvents = 'auto';
+}
+
+function clearFile() {
+  fileInput.value = '';
+  fileDisplay.style.display = 'none';
+  submitBtn.style.opacity = '0.4';
+  submitBtn.style.pointerEvents = 'none';
+}
+</script>
+{% endblock %}

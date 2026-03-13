@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}Batch Processing{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up fade-up-1">
+  <h1>// BATCH PROCESSING</h1>
+  <p>Process all invoices in the batch_texts folder at once</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6 fade-up fade-up-2">
+    <div class="card">
+      <div class="card-header-custom">Run Batch Pipeline</div>
+      <div class="p-4">
+
+        {% if message %}
+          {% if message.status == 'batch completed' %}
+          <div class="ev-alert success" style="margin-bottom:20px;">
+            <i class="bi bi-check-circle-fill"></i>
+            Batch completed successfully!
+          </div>
+
+          {% if message.batch_summary %}
+          <div style="background:var(--surface2); border-radius:8px; padding:16px; margin-bottom:20px;">
+            <div style="font-size:0.72rem; color:var(--muted); letter-spacing:1px;
+                        text-transform:uppercase; margin-bottom:12px;">Batch Summary</div>
+            {% for key, val in message.batch_summary.items() %}
+            <div style="display:flex; justify-content:space-between; padding:6px 0;
+                        border-bottom:1px solid var(--border); font-size:0.85rem;">
+              <span style="color:var(--muted);">{{ key }}</span>
+              <span class="mono">{{ val }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          {% else %}
+          <div class="ev-alert error" style="margin-bottom:20px;">
+            <i class="bi bi-x-circle-fill"></i>
+            Batch processing failed. Check your invoice files.
+          </div>
+          {% endif %}
+        {% endif %}
+
+        <p style="color:var(--muted); font-size:0.85rem; margin-bottom:20px; line-height:1.6;">
+          This will process all <span style="color:var(--accent);">.txt</span> invoice files
+          currently in the <span class="mono" style="color:var(--accent);">batch_texts/</span> folder.
+          Each invoice will be extracted, validated, risk-scored, and stored in the database.
+        </p>
+
+        <form method="POST">
+          <button type="submit" class="btn-ev" style="width:100%; padding:14px;">
+            <i class="bi bi-play-circle"></i> &nbsp;Run Batch Processing
+          </button>
+        </form>
+
+        <div style="margin-top:16px;">
+          <a href="/invoices" class="btn-ev-outline" style="width:100%; text-align:center;
+             display:block; padding:10px; text-decoration:none;">
+            <i class="bi bi-table"></i> View Processed Invoices
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 fade-up fade-up-3">
+    <div class="card">
+      <div class="card-header-custom">How Batch Works</div>
+      <div class="p-4">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          {% for item in [
+            ('bi-folder2-open', 'Scans Folder', 'Reads all .txt files from batch_texts/ directory'),
+            ('bi-cpu', 'Runs Pipeline', 'Each file goes through full extraction and validation'),
+            ('bi-graph-up-arrow', 'Scores Risk', 'Confidence and risk level calculated per invoice'),
+            ('bi-database-add', 'Saves Results', 'All processed data stored in SQLite database'),
+            ('bi-file-earmark-bar-graph', 'Returns Summary', 'Batch metrics returned as response')
+          ] %}
+          <div style="display:flex; gap:12px; align-items:flex-start;">
+            <i class="bi {{ item[0] }}" style="color:var(--accent); font-size:1.1rem; margin-top:2px; flex-shrink:0;"></i>
+            <div>
+              <div style="font-size:0.85rem; font-weight:500;">{{ item[1] }}</div>
+              <div style="font-size:0.78rem; color:var(--muted);">{{ item[2] }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

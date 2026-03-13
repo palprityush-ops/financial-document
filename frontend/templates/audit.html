@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up fade-up-1">
+  <h1>// AUDIT LOGS</h1>
+  <p>Complete processing trail for all invoices</p>
+</div>
+
+<div class="card fade-up fade-up-2">
+  <div class="card-header-custom" style="display:flex; justify-content:space-between; align-items:center;">
+    <span>Processing Audit Trail</span>
+    <span class="mono" style="color:var(--accent);">{{ logs|length }} entries</span>
+  </div>
+
+  {% if logs %}
+  <div style="overflow-x:auto;">
+    <table class="ev-table">
+      <thead>
+        <tr>
+          <th>Source File</th>
+          <th>Risk Level</th>
+          <th>Confidence</th>
+          <th>Risk Reasons</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in logs %}
+        <tr>
+          <td>
+            <span class="mono" style="font-size:0.78rem; color:var(--muted);">
+              <i class="bi bi-file-text" style="margin-right:4px;"></i>
+              {{ log.source_file or '—' }}
+            </span>
+          </td>
+          <td>
+            {% if log.risk|lower == 'high' %}
+              <span class="badge-high">HIGH</span>
+            {% elif log.risk|lower == 'medium' %}
+              <span class="badge-medium">MEDIUM</span>
+            {% else %}
+              <span class="badge-low">LOW</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set conf = log.confidence|float %}
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="conf-bar">
+                <div class="conf-fill {% if conf < 0.5 %}low-conf{% elif conf < 0.8 %}medium{% endif %}"
+                     style="width:{{ (conf*100)|int }}%;"></div>
+              </div>
+              <span class="mono" style="font-size:0.78rem; color:var(--muted);">{{ conf }}</span>
+            </div>
+          </td>
+          <td>
+            {% if log.reasons %}
+              <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                {% for reason in log.reasons %}
+                <span style="background:var(--surface2); border:1px solid var(--border);
+                             padding:2px 8px; border-radius:4px; font-size:0.72rem;
+                             color:var(--muted);">
+                  {{ reason }}
+                </span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span style="color:var(--low); font-size:0.78rem;">
+                <i class="bi bi-check-circle"></i> No issues detected
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:60px; text-align:center; color:var(--muted);">
+    <i class="bi bi-shield-check" style="font-size:2.5rem; display:block; margin-bottom:12px;"></i>
+    <p style="font-size:0.9rem;">No audit logs yet. Process invoices to generate logs.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
