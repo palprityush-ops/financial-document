@@ -12,9 +12,6 @@ from db.operations import insert_invoice
 from analytics.analytics_engine import run_batch_analytics
 from analytics.explainability import explain_invoice_risk
 
-from reports.report_generator import generate_text_report
-from reports.pdf_report_generator import generate_pdf_report
-
 from export_csv import export_invoices_to_csv
 
 INPUT_DIR = "batch_texts"
@@ -30,7 +27,6 @@ def run_batch_pipeline():
     # -------------------------
     for file in os.listdir(INPUT_DIR):
 
-        # only process invoice text files
         if not file.endswith(".txt"):
             continue
 
@@ -57,7 +53,6 @@ def run_batch_pipeline():
         extracted["source_file"] = file
         extracted["total_amount"] = extracted.get("grand_total")
 
-        # normalize risk value
         risk_level = extracted.get("risk_level", "LOW")
         extracted["risk"] = risk_level.lower()
 
@@ -119,11 +114,27 @@ def run_batch_pipeline():
     print("Batch processing complete. Output saved to", OUTPUT_FILE)
 
     # -------------------------
-    # Analytics + Text Report
+    # Analytics
     # -------------------------
     analytics_result = run_batch_analytics(results)
-    generate_text_report(analytics_result)
-    print("Batch analytics report generated.")
+    print("Batch analytics complete.")
+
+    # -------------------------
+    # Text Report (inline)
+    # -------------------------
+    os.makedirs("reports", exist_ok=True)
+
+    with open("reports/batch_report.txt", "w", encoding="utf-8") as f:
+        f.write("BATCH ANALYTICS REPORT\n")
+        f.write("=" * 50 + "\n\n")
+        f.write(f"Total Invoices: {total_invoices}\n")
+        f.write(f"Low Risk: {low_risk}\n")
+        f.write(f"Medium Risk: {medium_risk}\n")
+        f.write(f"High Risk: {high_risk}\n")
+        f.write(f"Average Confidence: " f"{batch_summary['average_confidence']}\n")
+        f.write(f"Total Amount: {batch_summary['total_grand_amount']}\n")
+
+    print("Batch report generated.")
 
     # -------------------------
     # Explainability
@@ -150,8 +161,6 @@ def run_batch_pipeline():
     # -------------------------
     # Audit Log
     # -------------------------
-    os.makedirs("reports", exist_ok=True)
-
     with open("reports/audit_log.txt", "w", encoding="utf-8") as f:
         f.write("AUDIT LOG - FINANCIAL DOCUMENT ANALYSIS SYSTEM\n")
         f.write("=" * 50 + "\n\n")
@@ -168,12 +177,6 @@ def run_batch_pipeline():
             f.write("-" * 40 + "\n")
 
     print("Audit log generated.")
-
-    # -------------------------
-    # PDF Report
-    # -------------------------
-    generate_pdf_report(analytics_result)
-    print("PDF report generated.")
 
     return batch_summary
 
