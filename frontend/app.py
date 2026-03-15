@@ -1,9 +1,12 @@
 import os
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session
 import requests
 
 app = Flask(__name__)
+
+# Session ke liye secret key zaroori hai
+app.secret_key = os.environ.get("SECRET_KEY", "evidentia_flask_secret_2024")
 
 API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
 API_KEY = os.environ.get("API_KEY", "secret-admin-key")
@@ -13,9 +16,100 @@ def api_headers():
     return {"x-api-key": API_KEY}
 
 
-# ── Dashboard ────────────────────────────────────────────────────────────────
+# ── Login Required Helper ─────────────────────────────────────────────────────
+def login_required():
+    """Agar logged in nahi hai toh login pe redirect karo"""
+    if "username" not in session:
+        return redirect(url_for("login"))
+    return None
+
+
+# ── Login ─────────────────────────────────────────────────────────────────────
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    # Agar pehle se logged in hai toh dashboard pe bhejo
+    if "username" in session:
+        return redirect(url_for("dashboard"))
+
+    error = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not password:
+            error = "Username aur password dono zaroori hain."
+        else:
+            try:
+                r = requests.post(
+                    f"{API_BASE}/auth/login",
+                    json={"username": username, "password": password},
+                    timeout=10,
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    session["username"] = data["username"]
+                    session["role"] = data["role"]
+                    session["token"] = data["token"]
+                    return redirect(url_for("dashboard"))
+                else:
+                    error = r.json().get("detail", "Login failed.")
+            except Exception as e:
+                error = f"API se connect nahi ho paya: {str(e)}"
+
+    return render_template("login.html", error=error)
+
+
+# ── Signup ────────────────────────────────────────────────────────────────────
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    # Agar pehle se logged in hai toh dashboard pe bhejo
+    if "username" in session:
+        return redirect(url_for("dashboard"))
+
+    error = None
+    success = None
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+
+        if not username or not email or not password:
+            error = "Sab fields bharna zaroori hai."
+        elif len(password) < 6:
+            error = "Password kam se kam 6 characters ka hona chahiye."
+        else:
+            try:
+                r = requests.post(
+                    f"{API_BASE}/auth/signup",
+                    json={"username": username, "email": email, "password": password},
+                    timeout=10,
+                )
+                if r.status_code == 200:
+                    success = "Account ban gaya! Ab login karo."
+                else:
+                    error = r.json().get("detail", "Signup failed.")
+            except Exception as e:
+                error = f"API se connect nahi ho paya: {str(e)}"
+
+    return render_template("signup.html", error=error, success=success)
+
+
+# ── Logout ────────────────────────────────────────────────────────────────────
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
 @app.route("/")
 def dashboard():
+    check = login_required()
+    if check:
+        return check
+
     try:
         r = requests.get(f"{API_BASE}/invoices", timeout=5)
         data = r.json()
@@ -34,12 +128,17 @@ def dashboard():
         high=high,
         medium=medium,
         low=low,
+        username=session.get("username"),
     )
 
 
-# ── Invoices ─────────────────────────────────────────────────────────────────
+# ── Invoices ──────────────────────────────────────────────────────────────────
 @app.route("/invoices")
 def invoices():
+    check = login_required()
+    if check:
+        return check
+
     try:
         r = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
         data = r.json()
@@ -47,12 +146,20 @@ def invoices():
     except Exception:
         invoices = []
 
-    return render_template("invoices.html", invoices=invoices)
+    return render_template(
+        "invoices.html",
+        invoices=invoices,
+        username=session.get("username"),
+    )
 
 
-# ── Upload ───────────────────────────────────────────────────────────────────
+# ── Upload ────────────────────────────────────────────────────────────────────
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
+    check = login_required()
+    if check:
+        return check
+
     message = None
     success = False
 
@@ -84,12 +191,21 @@ def upload():
             except Exception as e:
                 message = f"Could not connect to API: {str(e)}"
 
-    return render_template("upload.html", message=message, success=success)
+    return render_template(
+        "upload.html",
+        message=message,
+        success=success,
+        username=session.get("username"),
+    )
 
 
-# ── Batch ────────────────────────────────────────────────────────────────────
+# ── Batch ─────────────────────────────────────────────────────────────────────
 @app.route("/batch", methods=["GET", "POST"])
 def batch():
+    check = login_required()
+    if check:
+        return check
+
     message = None
 
     if request.method == "POST":
@@ -103,12 +219,20 @@ def batch():
         except Exception as e:
             message = {"status": "error", "detail": str(e)}
 
-    return render_template("batch.html", message=message)
+    return render_template(
+        "batch.html",
+        message=message,
+        username=session.get("username"),
+    )
 
 
-# ── Audit ────────────────────────────────────────────────────────────────────
+# ── Audit ─────────────────────────────────────────────────────────────────────
 @app.route("/audit")
 def audit():
+    check = login_required()
+    if check:
+        return check
+
     try:
         r = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
         data = r.json()
@@ -116,7 +240,11 @@ def audit():
     except Exception:
         logs = []
 
-    return render_template("audit.html", logs=logs)
+    return render_template(
+        "audit.html",
+        logs=logs,
+        username=session.get("username"),
+    )
 
 
 if __name__ == "__main__":

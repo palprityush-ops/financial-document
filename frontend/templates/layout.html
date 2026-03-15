@@ -428,9 +428,28 @@
     </a>
   </nav>
 
+  <!-- ✅ Logout — sidebar ke andar, bilkul neeche -->
   <div class="sidebar-footer">
+    {% if session.username %}
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+      <i class="bi bi-person-circle" style="color: var(--accent);"></i>
+      <span style="color: var(--text); font-size: 0.8rem;">{{ session.username }}</span>
+    </div>
+    <a href="/logout" style="
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--high);
+      font-size: 0.78rem;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    " onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+      <i class="bi bi-box-arrow-left"></i> Logout
+    </a>
+    {% else %}
     <div>Evidentia v1.0</div>
     <div style="margin-top:2px;">GLA University · 2026</div>
+    {% endif %}
   </div>
 </aside>
 
