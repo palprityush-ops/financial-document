@@ -5,9 +5,7 @@ import requests
 
 app = Flask(__name__)
 
-API_BASE = os.environ.get(
-    "API_BASE", "https://financial-document-2.onrender.com"
-)
+API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
 API_KEY = os.environ.get("API_KEY", "secret-admin-key")
 
 
@@ -27,9 +25,7 @@ def dashboard():
 
     total = len(invoices)
     high = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
-    medium = len(
-        [i for i in invoices if str(i.get("risk", "")).lower() == "medium"]
-    )
+    medium = len([i for i in invoices if str(i.get("risk", "")).lower() == "medium"])
     low = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
 
     return render_template(

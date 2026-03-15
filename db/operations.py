@@ -272,9 +272,9 @@ def get_user_by_username(username):
 
     # ✅ Index style — crash nahi karega (baaki functions jaisa)
     return {
-        "id":       row[0],
+        "id": row[0],
         "username": row[1],
-        "email":    row[2],
+        "email": row[2],
         "password": row[3],
-        "role":     row[4],
+        "role": row[4],
     }
