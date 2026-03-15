@@ -38,13 +38,13 @@ def login():
         password = request.form.get("password", "").strip()
 
         if not username or not password:
-            error = "Username aur password dono zaroori hain."
+            error = "Please enter both username and password."
         else:
             try:
                 r = requests.post(
                     f"{API_BASE}/auth/login",
                     json={"username": username, "password": password},
-                    timeout=10,
+                    timeout=30,
                 )
                 if r.status_code == 200:
                     data = r.json()
@@ -53,9 +53,9 @@ def login():
                     session["token"] = data["token"]
                     return redirect(url_for("dashboard"))
                 else:
-                    error = r.json().get("detail", "Login failed.")
+                    error = r.json().get("detail", "Invalid credentials. Please try again.")
             except Exception as e:
-                error = f"API se connect nahi ho paya: {str(e)}"
+                error = "Unable to connect to the server. Please try again later."
 
     return render_template("login.html", error=error)
 
@@ -76,22 +76,22 @@ def signup():
         password = request.form.get("password", "").strip()
 
         if not username or not email or not password:
-            error = "Sab fields bharna zaroori hai."
+            error = "All fields are required."
         elif len(password) < 6:
-            error = "Password kam se kam 6 characters ka hona chahiye."
+            error = "Password must be at least 6 characters long."
         else:
             try:
                 r = requests.post(
                     f"{API_BASE}/auth/signup",
                     json={"username": username, "email": email, "password": password},
-                    timeout=10,
+                    timeout=30,
                 )
                 if r.status_code == 200:
-                    success = "Account ban gaya! Ab login karo."
+                    success = "Account created successfully. Please sign in."
                 else:
-                    error = r.json().get("detail", "Signup failed.")
+                    error = r.json().get("detail", "This username or email is already registered.")
             except Exception as e:
-                error = f"API se connect nahi ho paya: {str(e)}"
+                error = "Unable to connect to the server. Please try again later."
 
     return render_template("signup.html", error=error, success=success)
 
@@ -176,7 +176,7 @@ def upload():
                     f"{API_BASE}/upload-invoice/",
                     files={"file": (file.filename, file.stream, "text/plain")},
                     headers=api_headers(),
-                    timeout=10,
+                    timeout=30,
                 )
                 if r.status_code == 200:
                     message = (
