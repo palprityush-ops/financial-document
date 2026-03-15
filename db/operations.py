@@ -239,3 +239,42 @@ def get_audit_logs(limit=50, offset=0):
             audit_map[source_file]["reasons"].append(reason)
 
     return list(audit_map.values())
+
+
+# -------------------------
+# Save New User (Signup)
+# -------------------------
+def save_user(username, email, hashed_password):
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+        (username, email, hashed_password),
+    )
+    conn.commit()
+    conn.close()
+
+
+# -------------------------
+# Get User by Username (Login)
+# -------------------------
+def get_user_by_username(username):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, username, email, password, role FROM users WHERE username = ?",
+        (username,),
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if row is None:
+        return None
+
+    # ✅ Index style — crash nahi karega (baaki functions jaisa)
+    return {
+        "id":       row[0],
+        "username": row[1],
+        "email":    row[2],
+        "password": row[3],
+        "role":     row[4],
+    }
