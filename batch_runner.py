@@ -15,11 +15,14 @@ from analytics.explainability import explain_invoice_risk
 from export_csv import export_invoices_to_csv
 
 INPUT_DIR = "batch_texts"
+os.makedirs(INPUT_DIR, exist_ok=True)  # ✅ Render pe folder na ho toh bana do
+
 OUTPUT_FILE = "batch_output.json"
 
 
 def run_batch_pipeline():
     init_db()
+    os.makedirs(INPUT_DIR, exist_ok=True)  # ✅ double safety
     results = []
 
     # -------------------------
@@ -131,7 +134,7 @@ def run_batch_pipeline():
         f.write(f"Low Risk: {low_risk}\n")
         f.write(f"Medium Risk: {medium_risk}\n")
         f.write(f"High Risk: {high_risk}\n")
-        f.write(f"Average Confidence: " f"{batch_summary['average_confidence']}\n")
+        f.write(f"Average Confidence: {batch_summary['average_confidence']}\n")
         f.write(f"Total Amount: {batch_summary['total_grand_amount']}\n")
 
     print("Batch report generated.")
