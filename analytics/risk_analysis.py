@@ -16,7 +16,6 @@ def calculate_risk_level(invoice):
     if not invoice.get("tax_amount"):
         issues += 1
 
-    # Confidence check
     confidence = invoice.get("confidence", 1.0)
     if isinstance(confidence, (int, float)) and confidence < 0.5:
         issues += 2
@@ -38,13 +37,18 @@ def analyze_risk(batch_data):
             risk_distribution[risk] += 1
 
     total_invoices = len(batch_data)
+
+    # ✅ Fix: empty batch pe division by zero nahi hoga
+    if total_invoices == 0:
+        return {
+            "risk_distribution": risk_distribution,
+            "high_risk_percentage": 0.0,
+            "manual_review_required": False,
+        }
+
     high_risk_count = risk_distribution["high"]
-
     high_risk_percentage = (high_risk_count / total_invoices) * 100
-
-    manual_review_required = False
-    if high_risk_percentage > 20:
-        manual_review_required = True
+    manual_review_required = high_risk_percentage > 20
 
     return {
         "risk_distribution": risk_distribution,
