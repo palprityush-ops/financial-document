@@ -1,4 +1,13 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query, Header, Depends, Request
+from fastapi import (
+    FastAPI,
+    UploadFile,
+    File,
+    HTTPException,
+    Query,
+    Header,
+    Depends,
+    Request,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -28,6 +37,7 @@ app = FastAPI(title="Financial Document Analysis API")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
 # -------------------------
 # Startup — DB init
 # -------------------------
@@ -38,6 +48,7 @@ def startup():
         print("Database initialized successfully.")
     except Exception as e:
         print(f"DB init failed: {e}")
+
 
 # -------------------------
 # Security Headers Middleware
@@ -50,6 +61,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
+
 
 # -------------------------
 # CORS
@@ -64,8 +76,9 @@ app.add_middleware(
 UPLOAD_DIR = "batch_texts"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-API_KEY    = "secret-admin-key"
+API_KEY = "secret-admin-key"
 SECRET_KEY = "evidentia_jwt_secret_2024"
+
 
 # -------------------------
 # Pydantic Models
@@ -98,7 +111,9 @@ def verify_token(authorization: str = Header(...)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         return payload
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Session expired. Please sign in again.")
+        raise HTTPException(
+            status_code=401, detail="Session expired. Please sign in again."
+        )
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid authentication token.")
 
@@ -118,9 +133,13 @@ def health_check():
 @limiter.limit("10/minute")
 def signup(request: Request, req: SignupRequest):
     if len(req.username.strip()) < 3:
-        raise HTTPException(status_code=400, detail="Username must be at least 3 characters.")
+        raise HTTPException(
+            status_code=400, detail="Username must be at least 3 characters."
+        )
     if len(req.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long.")
+        raise HTTPException(
+            status_code=400, detail="Password must be at least 6 characters long."
+        )
 
     hashed = bcrypt.hashpw(req.password.encode(), bcrypt.gensalt()).decode()
 
@@ -128,7 +147,9 @@ def signup(request: Request, req: SignupRequest):
         save_user(req.username.strip(), req.email.strip(), hashed)
         return {"message": f"Account created successfully. Welcome, {req.username}."}
     except Exception:
-        raise HTTPException(status_code=400, detail="This username or email is already registered.")
+        raise HTTPException(
+            status_code=400, detail="This username or email is already registered."
+        )
 
 
 # -------------------------
@@ -140,10 +161,14 @@ def login(request: Request, req: LoginRequest):
     user = get_user_by_username(req.username)
 
     if not user:
-        raise HTTPException(status_code=401, detail="No account found with this username.")
+        raise HTTPException(
+            status_code=401, detail="No account found with this username."
+        )
 
     if not bcrypt.checkpw(req.password.encode(), user["password"].encode()):
-        raise HTTPException(status_code=401, detail="Incorrect password. Please try again.")
+        raise HTTPException(
+            status_code=401, detail="Incorrect password. Please try again."
+        )
 
     token = jwt.encode(
         {
@@ -172,7 +197,9 @@ async def upload_invoice(
     file: UploadFile = File(...), _: str = Depends(verify_api_key)
 ):
     if not file.filename.endswith(".txt"):
-        raise HTTPException(status_code=400, detail="Only .txt invoice files are supported")
+        raise HTTPException(
+            status_code=400, detail="Only .txt invoice files are supported"
+        )
 
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     try:
@@ -193,7 +220,9 @@ def run_batch(_: str = Depends(verify_api_key)):
         summary = run_batch_pipeline()
         return {"status": "batch completed", "batch_summary": summary}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Batch processing failed: {str(e)}"
+        )
 
 
 # -------------------------
@@ -211,9 +240,7 @@ def fetch_all_invoices(
 # Fetch High Risk Invoices (PUBLIC)
 # -------------------------
 @app.get("/invoices/high-risk")
-def fetch_high_risk(
-    limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)
-):
+def fetch_high_risk(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)):
     data = get_high_risk_invoices(limit=limit, offset=offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
@@ -231,7 +258,13 @@ def fetch_invoices_by_risk(
     if risk not in ["low", "medium", "high"]:
         raise HTTPException(status_code=400, detail="Risk must be: low, medium, high")
     data = get_invoices_by_risk(risk, limit, offset)
-    return {"risk": risk, "limit": limit, "offset": offset, "count": len(data), "data": data}
+    return {
+        "risk": risk,
+        "limit": limit,
+        "offset": offset,
+        "count": len(data),
+        "data": data,
+    }
 
 
 # -------------------------

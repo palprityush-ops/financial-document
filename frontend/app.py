@@ -53,7 +53,9 @@ def login():
                     session["token"] = data["token"]
                     return redirect(url_for("dashboard"))
                 else:
-                    error = r.json().get("detail", "Invalid credentials. Please try again.")
+                    error = r.json().get(
+                        "detail", "Invalid credentials. Please try again."
+                    )
             except Exception as e:
                 error = "Unable to connect to the server. Please try again later."
 
@@ -89,7 +91,9 @@ def signup():
                 if r.status_code == 200:
                     success = "Account created successfully. Please sign in."
                 else:
-                    error = r.json().get("detail", "This username or email is already registered.")
+                    error = r.json().get(
+                        "detail", "This username or email is already registered."
+                    )
             except Exception as e:
                 error = "Unable to connect to the server. Please try again later."
 

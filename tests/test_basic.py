@@ -1,8 +1,8 @@
 from db.database import init_db
 from analytics.risk_analysis import calculate_risk_level, analyze_risk
 
-
 # ── DB Tests ──────────────────────────────────────────────────────────────────
+
 
 def test_init_db_runs():
     """Database initializes without errors."""
@@ -10,6 +10,7 @@ def test_init_db_runs():
 
 
 # ── Risk Level Tests ──────────────────────────────────────────────────────────
+
 
 def test_high_risk_missing_fields():
     """Invoice with missing critical fields should be HIGH risk."""
@@ -58,6 +59,7 @@ def test_low_confidence_increases_risk():
 
 # ── Analyze Risk (Batch) Tests ────────────────────────────────────────────────
 
+
 def test_analyze_risk_distribution():
     """Batch risk distribution should count correctly."""
     batch = [
@@ -88,9 +90,11 @@ def test_analyze_risk_no_manual_review():
 
 # ── Batch Summary Tests ───────────────────────────────────────────────────────
 
+
 def test_batch_summary_keys():
     """Batch pipeline summary should contain required keys."""
     from batch_runner import run_batch_pipeline
+
     summary = run_batch_pipeline()
     assert "total_invoices" in summary
     assert "high_risk" in summary
