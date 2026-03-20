@@ -1,5 +1,4 @@
 import sqlite3
-
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -7,8 +6,12 @@ DB_PATH = os.path.join(BASE_DIR, "finance.db")
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # 👈 Yeh add karo — dict jaisa return karega
+    # ✅ timeout=30 — database locked error fix
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    # ✅ WAL mode — concurrent access better handle karta hai
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
@@ -16,7 +19,6 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Invoices table (same as before)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,7 +33,6 @@ def init_db():
         )
     """)
 
-    # Risk explanations table (same as before)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS risk_explanations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,7 +42,6 @@ def init_db():
         )
     """)
 
-    # 👇 Users table — yahan add kiya init_db ke andar
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
