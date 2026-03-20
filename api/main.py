@@ -141,14 +141,30 @@ def signup(request: Request, req: SignupRequest):
             status_code=400, detail="Password must be at least 6 characters long."
         )
 
+    # ✅ Check karo pehle — username already exists?
+    existing = get_user_by_username(req.username.strip())
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="This username is already taken. Please choose another.",
+        )
+
     hashed = bcrypt.hashpw(req.password.encode(), bcrypt.gensalt()).decode()
 
     try:
         save_user(req.username.strip(), req.email.strip(), hashed)
         return {"message": f"Account created successfully. Welcome, {req.username}."}
-    except Exception:
+    except Exception as e:
+        # ✅ Actual error log karo aur specific message do
+        error_msg = str(e).lower()
+        if "unique" in error_msg or "duplicate" in error_msg:
+            raise HTTPException(
+                status_code=400,
+                detail="This email address is already registered.",
+            )
         raise HTTPException(
-            status_code=400, detail="This username or email is already registered."
+            status_code=500,
+            detail=f"Account creation failed: {str(e)}",
         )
 
 
@@ -297,3 +313,16 @@ def fetch_audit_logs(
 ):
     data = get_audit_logs(limit, offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
+
+
+# -------------------------
+# ✅ List all users (DEBUG — remove after testing)
+# -------------------------
+@app.get("/debug/users")
+def debug_users():
+    from db.database import get_connection
+
+    conn = get_connection()
+    rows = conn.execute("SELECT id, username, email, role FROM users").fetchall()
+    conn.close()
+    return {"total": len(rows), "users": [dict(r) for r in rows]}
