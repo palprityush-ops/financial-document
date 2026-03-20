@@ -18,16 +18,57 @@ def api_headers():
 
 # ── Login Required Helper ─────────────────────────────────────────────────────
 def login_required():
-    """Agar logged in nahi hai toh login pe redirect karo"""
     if "username" not in session:
         return redirect(url_for("login"))
     return None
 
 
+# ── Custom Error Handlers ─────────────────────────────────────────────────────
+@app.errorhandler(404)
+def page_not_found(e):
+    return (
+        render_template(
+            "error.html",
+            code=404,
+            title="Page Not Found",
+            message="The page you are looking for does not exist.",
+            username=session.get("username"),
+        ),
+        404,
+    )
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return (
+        render_template(
+            "error.html",
+            code=500,
+            title="Internal Server Error",
+            message="Something went wrong on our end. Please try again later.",
+            username=session.get("username"),
+        ),
+        500,
+    )
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return (
+        render_template(
+            "error.html",
+            code=403,
+            title="Access Denied",
+            message="You do not have permission to access this page.",
+            username=session.get("username"),
+        ),
+        403,
+    )
+
+
 # ── Login ─────────────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    # Agar pehle se logged in hai toh dashboard pe bhejo
     if "username" in session:
         return redirect(url_for("dashboard"))
 
@@ -56,7 +97,7 @@ def login():
                     error = r.json().get(
                         "detail", "Invalid credentials. Please try again."
                     )
-            except Exception as e:
+            except Exception:
                 error = "Unable to connect to the server. Please try again later."
 
     return render_template("login.html", error=error)
@@ -65,7 +106,6 @@ def login():
 # ── Signup ────────────────────────────────────────────────────────────────────
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    # Agar pehle se logged in hai toh dashboard pe bhejo
     if "username" in session:
         return redirect(url_for("dashboard"))
 
@@ -94,7 +134,7 @@ def signup():
                     error = r.json().get(
                         "detail", "This username or email is already registered."
                     )
-            except Exception as e:
+            except Exception:
                 error = "Unable to connect to the server. Please try again later."
 
     return render_template("signup.html", error=error, success=success)
