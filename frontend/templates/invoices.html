@@ -23,7 +23,7 @@
         <option value="low">Low</option>
       </select>
     </div>
-    <button class="btn-ev-outline" onclick="clearFilters()">
+    <button class="btn-ev-outline" onclick="clearFilters()" style="display:inline-flex; align-items:center; gap:6px;">
       <i class="bi bi-x-circle"></i> Clear
     </button>
   </div>
@@ -51,7 +51,7 @@
           <th>Risk</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="tableBody">
         {% for inv in invoices %}
         <tr class="table-row" data-risk="{{ inv.risk|lower }}">
           <td>
@@ -103,33 +103,40 @@
 
 {% block scripts %}
 <script>
-function filterTable() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const risk   = document.getElementById('riskFilter').value.toLowerCase();
-  const rows   = document.querySelectorAll('.table-row');
-  let visible  = 0;
+  const totalRecords = {{ invoices|length }};
 
-  rows.forEach(row => {
-    const text    = row.textContent.toLowerCase();
-    const rowRisk = row.dataset.risk;
-    const matchSearch = !search || text.includes(search);
-    const matchRisk   = !risk   || rowRisk === risk;
+  function filterTable() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const risk   = document.getElementById('riskFilter').value.toLowerCase();
+    const rows   = document.querySelectorAll('#tableBody .table-row');
+    let visible  = 0;
 
-    if (matchSearch && matchRisk) {
-      row.style.display = '';
-      visible++;
+    rows.forEach(function(row) {
+      const text    = row.textContent.toLowerCase();
+      const rowRisk = row.getAttribute('data-risk');
+      const matchSearch = !search || text.includes(search);
+      const matchRisk   = !risk   || rowRisk === risk;
+
+      if (matchSearch && matchRisk) {
+        row.style.display = '';
+        visible++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    const label = document.getElementById('countLabel');
+    if (search || risk) {
+      label.textContent = visible + ' of ' + totalRecords + ' records';
     } else {
-      row.style.display = 'none';
+      label.textContent = totalRecords + ' records';
     }
-  });
+  }
 
-  document.getElementById('countLabel').textContent = visible + ' records';
-}
-
-function clearFilters() {
-  document.getElementById('searchInput').value = '';
-  document.getElementById('riskFilter').value  = '';
-  filterTable();
-}
+  function clearFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('riskFilter').value  = '';
+    filterTable();
+  }
 </script>
 {% endblock %}

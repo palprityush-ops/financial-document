@@ -7,7 +7,7 @@ from extractor import extract_invoice_data
 from validator import validate_totals
 
 from db.database import init_db
-from db.operations import insert_invoice
+from db.operations import insert_invoice, get_all_invoices
 
 from analytics.analytics_engine import run_batch_analytics
 from analytics.explainability import explain_invoice_risk
@@ -15,15 +15,19 @@ from analytics.explainability import explain_invoice_risk
 from export_csv import export_invoices_to_csv
 
 INPUT_DIR = "batch_texts"
-os.makedirs(INPUT_DIR, exist_ok=True)  # ✅ Render pe folder na ho toh bana do
+os.makedirs(INPUT_DIR, exist_ok=True)
 
 OUTPUT_FILE = "batch_output.json"
 
 
 def run_batch_pipeline():
     init_db()
-    os.makedirs(INPUT_DIR, exist_ok=True)  # ✅ double safety
+    os.makedirs(INPUT_DIR, exist_ok=True)
     results = []
+
+    # ✅ Already processed files ka set banao — duplicates avoid karne ke liye
+    existing_invoices = get_all_invoices(limit=1000, offset=0)
+    already_processed = {inv["source_file"] for inv in existing_invoices}
 
     # -------------------------
     # Process each invoice file
@@ -31,6 +35,11 @@ def run_batch_pipeline():
     for file in os.listdir(INPUT_DIR):
 
         if not file.endswith(".txt"):
+            continue
+
+        # ✅ Skip karo agar already processed hai
+        if file in already_processed:
+            print(f"Skipping already processed file: {file}")
             continue
 
         file_path = os.path.join(INPUT_DIR, file)
@@ -119,11 +128,12 @@ def run_batch_pipeline():
     # -------------------------
     # Analytics
     # -------------------------
-    analytics_result = run_batch_analytics(results)
-    print("Batch analytics complete.")
+    if results:
+        analytics_result = run_batch_analytics(results)
+        print("Batch analytics complete.")
 
     # -------------------------
-    # Text Report (inline)
+    # Text Report
     # -------------------------
     os.makedirs("reports", exist_ok=True)
 
