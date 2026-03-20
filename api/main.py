@@ -313,16 +313,3 @@ def fetch_audit_logs(
 ):
     data = get_audit_logs(limit, offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
-
-
-# -------------------------
-# ✅ List all users (DEBUG — remove after testing)
-# -------------------------
-@app.get("/debug/users")
-def debug_users():
-    from db.database import get_connection
-
-    conn = get_connection()
-    rows = conn.execute("SELECT id, username, email, role FROM users").fetchall()
-    conn.close()
-    return {"total": len(rows), "users": [dict(r) for r in rows]}
