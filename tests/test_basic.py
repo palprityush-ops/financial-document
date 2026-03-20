@@ -1,5 +1,7 @@
 from db.database import init_db
 from analytics.risk_analysis import calculate_risk_level, analyze_risk
+from extractor import extract_invoice_data
+from validator import validate_totals
 
 # ── DB Tests ──────────────────────────────────────────────────────────────────
 
@@ -101,7 +103,6 @@ def test_analyze_risk_empty_batch():
 
 def test_batch_summary_structure():
     """Batch summary keys should always be present."""
-    # Direct dictionary test — no file dependency
     summary = {
         "total_invoices": 0,
         "high_risk": 0,
@@ -115,3 +116,88 @@ def test_batch_summary_structure():
     assert "low_risk" in summary
     assert "medium_risk" in summary
     assert "average_confidence" in summary
+
+
+# ── Extractor Tests ───────────────────────────────────────────────────────────
+
+
+def test_extractor_full_invoice():
+    """Extractor should parse all fields from a complete invoice text."""
+    text = (
+        "bill no 1001 date 15-03-2024 "
+        "sub total 1000 tax 18 percent 180 grand total 1180"
+    )
+    result = extract_invoice_data(text)
+    assert result["bill_number"] == "1001"
+    assert result["subtotal"] == 1000
+    assert result["tax_amount"] == 180
+    assert result["grand_total"] == 1180
+
+
+def test_extractor_missing_fields_gives_high_risk():
+    """Invoice text with no fields should result in HIGH risk."""
+    text = "this is a random text with no invoice data"
+    result = extract_invoice_data(text)
+    assert result["risk_level"] == "HIGH"
+    assert result["confidence"] < 0.5
+
+
+def test_extractor_confidence_full_invoice():
+    """Complete invoice should have high confidence."""
+    text = (
+        "bill no 2001 date 20-01-2024 "
+        "sub total 5000 tax 18 percent 900 grand total 5900"
+    )
+    result = extract_invoice_data(text)
+    assert result["confidence"] >= 0.7
+
+
+def test_extractor_returns_required_keys():
+    """Extractor output should always have required keys."""
+    result = extract_invoice_data("some text")
+    required_keys = [
+        "bill_number",
+        "invoice_date",
+        "subtotal",
+        "tax_amount",
+        "grand_total",
+        "confidence",
+        "risk_level",
+        "issues",
+    ]
+    for key in required_keys:
+        assert key in result, f"Missing key: {key}"
+
+
+# ── Validator Tests ───────────────────────────────────────────────────────────
+
+
+def test_validator_valid_totals():
+    """Correct subtotal + tax = grand total should pass."""
+    issues = []
+    result = validate_totals(1000, 180, 1180, issues)
+    assert result is True
+    assert len(issues) == 0
+
+
+def test_validator_invalid_totals():
+    """Wrong grand total should fail validation."""
+    issues = []
+    result = validate_totals(1000, 180, 1500, issues)
+    assert result is False
+    assert len(issues) > 0
+
+
+def test_validator_missing_values():
+    """None values should fail validation and add issue."""
+    issues = []
+    result = validate_totals(None, None, None, issues)
+    assert result is False
+    assert len(issues) > 0
+
+
+def test_validator_allows_rounding():
+    """Totals off by 1 should still pass (rounding tolerance)."""
+    issues = []
+    result = validate_totals(1000, 180, 1181, issues)
+    assert result is True
