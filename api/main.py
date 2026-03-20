@@ -32,7 +32,30 @@ from batch_runner import run_batch_pipeline
 # -------------------------
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="Financial Document Analysis API")
+app = FastAPI(
+    title="Evidentia — Financial Document Intelligence API",
+    description="""
+## Evidentia API
+
+A production-grade REST API for automated financial document analysis.
+
+### Features
+- **Invoice Processing** — Extract, validate and score financial documents
+- **Risk Assessment** — LOW / MEDIUM / HIGH risk classification with explainability
+- **Batch Processing** — Process multiple invoices in one pipeline run
+- **User Authentication** — JWT-based secure login and signup
+- **Audit Logging** — Full processing trail for every document
+
+### Authentication
+Protected endpoints require an API key in the `x-api-key` header.
+
+### Team
+- Prityush Pal (2415500358)
+- Ishika Bharti (2415500206)
+- Mentor: Mr. Preshit Desai, GLA University
+    """,
+    version="1.0.0",
+)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -119,9 +142,14 @@ def verify_token(authorization: str = Header(...)):
 
 
 # -------------------------
-# Health Check (PUBLIC)
+# Health Check
 # -------------------------
-@app.get("/")
+@app.get(
+    "/",
+    summary="Health Check",
+    description="Returns API status. Use this to verify the service is running.",
+    tags=["System"],
+)
 def health_check():
     return {"status": "ok", "message": "Financial Document Analysis API running"}
 
@@ -129,7 +157,12 @@ def health_check():
 # -------------------------
 # SIGNUP
 # -------------------------
-@app.post("/auth/signup")
+@app.post(
+    "/auth/signup",
+    summary="Create a new user account",
+    description="Register a new user with username, email and password. Password must be at least 6 characters. Rate limited to 10 requests per minute.",
+    tags=["Authentication"],
+)
 @limiter.limit("10/minute")
 def signup(request: Request, req: SignupRequest):
     if len(req.username.strip()) < 3:
@@ -141,7 +174,6 @@ def signup(request: Request, req: SignupRequest):
             status_code=400, detail="Password must be at least 6 characters long."
         )
 
-    # ✅ Check karo pehle — username already exists?
     existing = get_user_by_username(req.username.strip())
     if existing:
         raise HTTPException(
@@ -155,7 +187,6 @@ def signup(request: Request, req: SignupRequest):
         save_user(req.username.strip(), req.email.strip(), hashed)
         return {"message": f"Account created successfully. Welcome, {req.username}."}
     except Exception as e:
-        # ✅ Actual error log karo aur specific message do
         error_msg = str(e).lower()
         if "unique" in error_msg or "duplicate" in error_msg:
             raise HTTPException(
@@ -171,7 +202,12 @@ def signup(request: Request, req: SignupRequest):
 # -------------------------
 # LOGIN
 # -------------------------
-@app.post("/auth/login")
+@app.post(
+    "/auth/login",
+    summary="Authenticate user and get JWT token",
+    description="Login with username and password. Returns a JWT token valid for 24 hours. Rate limited to 5 requests per minute.",
+    tags=["Authentication"],
+)
 @limiter.limit("5/minute")
 def login(request: Request, req: LoginRequest):
     user = get_user_by_username(req.username)
@@ -206,9 +242,14 @@ def login(request: Request, req: LoginRequest):
 
 
 # -------------------------
-# Upload Invoice (PROTECTED)
+# Upload Invoice
 # -------------------------
-@app.post("/upload-invoice/")
+@app.post(
+    "/upload-invoice/",
+    summary="Upload an invoice file for processing",
+    description="Upload a .txt invoice file to the batch processing queue. Requires API key authentication. Only .txt format is supported.",
+    tags=["Invoice Processing"],
+)
 async def upload_invoice(
     file: UploadFile = File(...), _: str = Depends(verify_api_key)
 ):
@@ -228,9 +269,14 @@ async def upload_invoice(
 
 
 # -------------------------
-# Run Batch Pipeline (PROTECTED)
+# Run Batch Pipeline
 # -------------------------
-@app.post("/run-batch/")
+@app.post(
+    "/run-batch/",
+    summary="Run the batch processing pipeline",
+    description="Processes all uploaded invoice files through the full pipeline: extraction, validation, risk scoring, explainability and persistence. Requires API key.",
+    tags=["Invoice Processing"],
+)
 def run_batch(_: str = Depends(verify_api_key)):
     try:
         summary = run_batch_pipeline()
@@ -242,31 +288,50 @@ def run_batch(_: str = Depends(verify_api_key)):
 
 
 # -------------------------
-# Fetch All Invoices (PUBLIC)
+# Fetch All Invoices
 # -------------------------
-@app.get("/invoices")
+@app.get(
+    "/invoices",
+    summary="Fetch all processed invoices",
+    description="Returns a paginated list of all processed invoices. Supports limit and offset for pagination.",
+    tags=["Invoices"],
+)
 def fetch_all_invoices(
-    limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)
+    limit: int = Query(20, ge=1, le=100, description="Number of records to return"),
+    offset: int = Query(0, ge=0, description="Number of records to skip"),
 ):
     data = get_all_invoices(limit=limit, offset=offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
 
 # -------------------------
-# Fetch High Risk Invoices (PUBLIC)
+# Fetch High Risk Invoices
 # -------------------------
-@app.get("/invoices/high-risk")
-def fetch_high_risk(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)):
+@app.get(
+    "/invoices/high-risk",
+    summary="Fetch high risk invoices only",
+    description="Returns only invoices classified as HIGH risk. Useful for prioritizing manual review.",
+    tags=["Invoices"],
+)
+def fetch_high_risk(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
     data = get_high_risk_invoices(limit=limit, offset=offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
 
 # -------------------------
-# Fetch by Risk (PUBLIC)
+# Fetch by Risk
 # -------------------------
-@app.get("/invoices/by-risk")
+@app.get(
+    "/invoices/by-risk",
+    summary="Filter invoices by risk level",
+    description="Filter invoices by risk level. Accepted values: low, medium, high.",
+    tags=["Invoices"],
+)
 def fetch_invoices_by_risk(
-    risk: str,
+    risk: str = Query(..., description="Risk level: low, medium, or high"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -284,12 +349,17 @@ def fetch_invoices_by_risk(
 
 
 # -------------------------
-# Fetch by Date (PUBLIC)
+# Fetch by Date
 # -------------------------
-@app.get("/invoices/by-date")
+@app.get(
+    "/invoices/by-date",
+    summary="Filter invoices by date range",
+    description="Returns invoices processed within a given date range. Date format: YYYY-MM-DD.",
+    tags=["Invoices"],
+)
 def fetch_invoices_by_date(
-    start_date: str,
-    end_date: str,
+    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
+    end_date: str = Query(..., description="End date in YYYY-MM-DD format"),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -303,9 +373,14 @@ def fetch_invoices_by_date(
 
 
 # -------------------------
-# Audit Logs (PROTECTED)
+# Audit Logs
 # -------------------------
-@app.get("/audit")
+@app.get(
+    "/audit",
+    summary="Fetch audit logs",
+    description="Returns a full audit trail of all processed invoices including risk reasons. Requires API key authentication.",
+    tags=["Audit"],
+)
 def fetch_audit_logs(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
