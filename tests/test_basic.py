@@ -1,5 +1,5 @@
-from db.database import init_db 
-import pytest   
+from db.database import init_db
+import pytest
 from analytics.risk_analysis import calculate_risk_level, analyze_risk
 from extractor import extract_invoice_data
 from validator import validate_totals
@@ -10,10 +10,10 @@ from validator import validate_totals
 def test_init_db_runs():
     """Database initializes without errors."""
     import os
+
     if not os.environ.get("DATABASE_URL"):
         pytest.skip("DATABASE_URL not set — skipping DB test")
     init_db()
-
 
 
 # ── Risk Level Tests ──────────────────────────────────────────────────────────
