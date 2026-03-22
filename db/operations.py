@@ -1,4 +1,3 @@
-import sqlite3
 from db.database import get_connection
 
 
@@ -15,7 +14,8 @@ def insert_invoice(invoice):
             source_file, bill_number, invoice_date,
             subtotal, tax_amount, grand_total,
             confidence, risk
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
     """,
         (
             invoice.get("source_file"),
@@ -29,19 +29,19 @@ def insert_invoice(invoice):
         ),
     )
 
-    invoice_id = cursor.lastrowid
+    invoice_id = cursor.fetchone()["id"]
 
-    # Insert risk explanations
     for reason in invoice.get("risk_explanation", []):
         cursor.execute(
             """
             INSERT INTO risk_explanations (invoice_id, reason)
-            VALUES (?, ?)
+            VALUES (%s, %s)
         """,
             (invoice_id, reason),
         )
 
     conn.commit()
+    cursor.close()
     conn.close()
 
 
@@ -54,42 +54,23 @@ def get_all_invoices(limit=20, offset=0):
 
     cursor.execute(
         """
-        SELECT
-            source_file,
-            bill_number,
-            invoice_date,
-            subtotal,
-            tax_amount,
-            grand_total,
-            confidence,
-            risk
+        SELECT source_file, bill_number, invoice_date,
+               subtotal, tax_amount, grand_total, confidence, risk
         FROM invoices
         ORDER BY id DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """,
         (limit, offset),
     )
 
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    return [
-        {
-            "source_file": r[0],
-            "bill_number": r[1],
-            "invoice_date": r[2],
-            "subtotal": r[3],
-            "tax_amount": r[4],
-            "grand_total": r[5],
-            "confidence": r[6],
-            "risk": r[7],
-        }
-        for r in rows
-    ]
+    return [dict(r) for r in rows]
 
 
 # -------------------------
-# Get High Risk Invoices (PAGINATED)
+# Get High Risk Invoices
 # -------------------------
 def get_high_risk_invoices(limit=20, offset=0):
     conn = get_connection()
@@ -97,184 +78,137 @@ def get_high_risk_invoices(limit=20, offset=0):
 
     cursor.execute(
         """
-        SELECT
-            source_file,
-            bill_number,
-            invoice_date,
-            grand_total,
-            confidence,
-            risk
+        SELECT source_file, bill_number, invoice_date,
+               grand_total, confidence, risk
         FROM invoices
         WHERE risk = 'high'
         ORDER BY id DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """,
         (limit, offset),
     )
 
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    return [
-        {
-            "source_file": r[0],
-            "bill_number": r[1],
-            "invoice_date": r[2],
-            "grand_total": r[3],
-            "confidence": r[4],
-            "risk": r[5],
-        }
-        for r in rows
-    ]
+    return [dict(r) for r in rows]
 
 
+# -------------------------
+# Get Invoices by Risk
+# -------------------------
 def get_invoices_by_risk(risk, limit=20, offset=0):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        SELECT
-            source_file,
-            bill_number,
-            invoice_date,
-            grand_total,
-            confidence,
-            risk
+        SELECT source_file, bill_number, invoice_date,
+               grand_total, confidence, risk
         FROM invoices
-        WHERE risk = ?
+        WHERE risk = %s
         ORDER BY id DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """,
         (risk, limit, offset),
     )
 
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    return [
-        {
-            "source_file": r[0],
-            "bill_number": r[1],
-            "invoice_date": r[2],
-            "grand_total": r[3],
-            "confidence": r[4],
-            "risk": r[5],
-        }
-        for r in rows
-    ]
+    return [dict(r) for r in rows]
 
 
+# -------------------------
+# Get Invoices by Date
+# -------------------------
 def get_invoices_by_date(start_date, end_date, limit=20, offset=0):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        SELECT
-            source_file,
-            bill_number,
-            invoice_date,
-            grand_total,
-            confidence,
-            risk
+        SELECT source_file, bill_number, invoice_date,
+               grand_total, confidence, risk
         FROM invoices
-        WHERE invoice_date BETWEEN ? AND ?
+        WHERE invoice_date BETWEEN %s AND %s
         ORDER BY id DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """,
         (start_date, end_date, limit, offset),
     )
 
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
-
-    return [
-        {
-            "source_file": r[0],
-            "bill_number": r[1],
-            "invoice_date": r[2],
-            "grand_total": r[3],
-            "confidence": r[4],
-            "risk": r[5],
-        }
-        for r in rows
-    ]
+    return [dict(r) for r in rows]
 
 
+# -------------------------
+# Get Audit Logs
+# -------------------------
 def get_audit_logs(limit=50, offset=0):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         """
-        SELECT
-            i.source_file,
-            i.risk,
-            i.confidence,
-            r.reason
+        SELECT i.source_file, i.risk, i.confidence, r.reason
         FROM invoices i
-        LEFT JOIN risk_explanations r
-        ON i.id = r.invoice_id
+        LEFT JOIN risk_explanations r ON i.id = r.invoice_id
         ORDER BY i.id DESC
-        LIMIT ? OFFSET ?
+        LIMIT %s OFFSET %s
     """,
         (limit, offset),
     )
 
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
 
     audit_map = {}
-
-    for source_file, risk, confidence, reason in rows:
-        if source_file not in audit_map:
-            audit_map[source_file] = {
-                "source_file": source_file,
-                "risk": risk,
-                "confidence": confidence,
+    for row in rows:
+        row = dict(row)
+        sf = row["source_file"]
+        if sf not in audit_map:
+            audit_map[sf] = {
+                "source_file": sf,
+                "risk": row["risk"],
+                "confidence": row["confidence"],
                 "reasons": [],
             }
-        if reason:
-            audit_map[source_file]["reasons"].append(reason)
+        if row["reason"]:
+            audit_map[sf]["reasons"].append(row["reason"])
 
     return list(audit_map.values())
 
 
 # -------------------------
-# Save New User (Signup)
+# Save New User
 # -------------------------
 def save_user(username, email, hashed_password):
     conn = get_connection()
-    conn.execute(
-        "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
         (username, email, hashed_password),
     )
     conn.commit()
+    cursor.close()
     conn.close()
 
 
 # -------------------------
-# Get User by Username (Login)
+# Get User by Username
 # -------------------------
 def get_user_by_username(username):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, username, email, password, role FROM users WHERE username = ?",
+        "SELECT id, username, email, password, role FROM users WHERE username = %s",
         (username,),
     )
     row = cursor.fetchone()
+    cursor.close()
     conn.close()
-
-    if row is None:
-        return None
-
-    # ✅ Index style — crash nahi karega (baaki functions jaisa)
-    return {
-        "id": row[0],
-        "username": row[1],
-        "email": row[2],
-        "password": row[3],
-        "role": row[4],
-    }
+    return dict(row) if row else None

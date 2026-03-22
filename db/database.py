@@ -1,17 +1,12 @@
-import sqlite3
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "finance.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def get_connection():
-    # ✅ timeout=30 — database locked error fix
-    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    # ✅ WAL mode — concurrent access better handle karta hai
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
 
 
@@ -21,7 +16,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             source_file TEXT,
             bill_number TEXT,
             invoice_date TEXT,
@@ -35,7 +30,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS risk_explanations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             invoice_id INTEGER,
             reason TEXT,
             FOREIGN KEY(invoice_id) REFERENCES invoices(id)
@@ -44,14 +39,15 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            id         SERIAL PRIMARY KEY,
             username   TEXT UNIQUE NOT NULL,
             email      TEXT UNIQUE NOT NULL,
             password   TEXT NOT NULL,
             role       TEXT DEFAULT 'user',
-            created_at TEXT DEFAULT (datetime('now'))
+            created_at TIMESTAMP DEFAULT NOW()
         )
     """)
 
     conn.commit()
+    cursor.close()
     conn.close()
