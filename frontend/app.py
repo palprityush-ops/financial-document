@@ -5,7 +5,6 @@ import requests
 
 app = Flask(__name__)
 
-# Session ke liye secret key zaroori hai
 app.secret_key = os.environ.get("SECRET_KEY", "evidentia_flask_secret_2024")
 
 API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
@@ -211,29 +210,57 @@ def upload():
         file = request.files.get("file")
 
         if not file or file.filename == "":
-            message = "No file selected. Please choose a .txt invoice file."
-        elif not file.filename.endswith(".txt"):
-            message = "Invalid file type. Only .txt files are supported."
+            message = "No file selected. Please choose a .txt or .pdf invoice file."
         else:
-            try:
-                r = requests.post(
-                    f"{API_BASE}/upload-invoice/",
-                    files={"file": (file.filename, file.stream, "text/plain")},
-                    headers=api_headers(),
-                    timeout=30,
-                )
-                if r.status_code == 200:
-                    message = (
-                        f"'{file.filename}' uploaded successfully!"
-                        " Ready for batch processing."
+            filename = file.filename.lower()
+
+            # ✅ PDF upload
+            if filename.endswith(".pdf"):
+                try:
+                    r = requests.post(
+                        f"{API_BASE}/upload-pdf/",
+                        files={"file": (file.filename, file.stream, "application/pdf")},
+                        headers=api_headers(),
+                        timeout=30,
                     )
-                    success = True
-                else:
-                    message = (
-                        f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                    if r.status_code == 200:
+                        data = r.json()
+                        message = (
+                            f"PDF '{file.filename}' uploaded and converted successfully! "
+                            f"Saved as '{data.get('filename')}'. Ready for batch processing."
+                        )
+                        success = True
+                    else:
+                        message = (
+                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        )
+                except Exception as e:
+                    message = f"Could not connect to API: {str(e)}"
+
+            # ✅ TXT upload
+            elif filename.endswith(".txt"):
+                try:
+                    r = requests.post(
+                        f"{API_BASE}/upload-invoice/",
+                        files={"file": (file.filename, file.stream, "text/plain")},
+                        headers=api_headers(),
+                        timeout=30,
                     )
-            except Exception as e:
-                message = f"Could not connect to API: {str(e)}"
+                    if r.status_code == 200:
+                        message = (
+                            f"'{file.filename}' uploaded successfully!"
+                            " Ready for batch processing."
+                        )
+                        success = True
+                    else:
+                        message = (
+                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        )
+                except Exception as e:
+                    message = f"Could not connect to API: {str(e)}"
+
+            else:
+                message = "Invalid file type. Only .txt and .pdf files are supported."
 
     return render_template(
         "upload.html",

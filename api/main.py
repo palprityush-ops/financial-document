@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-import shutil, os, bcrypt, jwt, datetime
+import shutil, os, bcrypt, jwt, datetime, io
 from pydantic import BaseModel
 
 from db.operations import (
@@ -45,6 +45,7 @@ A production-grade REST API for automated financial document analysis.
 - **Batch Processing** — Process multiple invoices in one pipeline run
 - **User Authentication** — JWT-based secure login and signup
 - **Audit Logging** — Full processing trail for every document
+- **PDF Support** — Upload PDF invoices directly
 
 ### Authentication
 Protected endpoints require an API key in the `x-api-key` header.
@@ -242,12 +243,12 @@ def login(request: Request, req: LoginRequest):
 
 
 # -------------------------
-# Upload Invoice
+# Upload Invoice (.txt)
 # -------------------------
 @app.post(
     "/upload-invoice/",
-    summary="Upload an invoice file for processing",
-    description="Upload a .txt invoice file to the batch processing queue. Requires API key authentication. Only .txt format is supported.",
+    summary="Upload a .txt invoice file for processing",
+    description="Upload a .txt invoice file to the batch processing queue. Requires API key authentication.",
     tags=["Invoice Processing"],
 )
 async def upload_invoice(
@@ -266,6 +267,63 @@ async def upload_invoice(
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
     return {"status": "uploaded", "filename": file.filename}
+
+
+# -------------------------
+# Upload PDF Invoice
+# -------------------------
+@app.post(
+    "/upload-pdf/",
+    summary="Upload a PDF invoice file for processing",
+    description="Upload a PDF invoice. Text is extracted automatically using pdfplumber and saved as .txt for batch processing. Requires API key.",
+    tags=["Invoice Processing"],
+)
+async def upload_pdf(file: UploadFile = File(...), _: str = Depends(verify_api_key)):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(
+            status_code=400, detail="Only .pdf files are supported on this endpoint."
+        )
+
+    try:
+        import pdfplumber
+
+        contents = await file.read()
+        text = ""
+
+        with pdfplumber.open(io.BytesIO(contents)) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+
+        if not text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="No text could be extracted from this PDF. Please use a text-based PDF.",
+            )
+
+        # Save as .txt for batch processing
+        txt_filename = file.filename.replace(".pdf", ".txt")
+        txt_path = os.path.join(UPLOAD_DIR, txt_filename)
+
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write(text)
+
+        return {
+            "status": "uploaded",
+            "filename": txt_filename,
+            "original": file.filename,
+            "pages_extracted": len(text.splitlines()),
+            "message": f"PDF converted to text and saved as '{txt_filename}'",
+        }
+
+    except ImportError:
+        raise HTTPException(
+            status_code=500,
+            detail="PDF processing library not available.",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(e)}")
 
 
 # -------------------------
