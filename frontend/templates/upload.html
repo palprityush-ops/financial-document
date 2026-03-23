@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header fade-up fade-up-1">
   <h1>// UPLOAD INVOICE</h1>
-  <p>Upload a .txt invoice file for analysis</p>
+  <p>Upload a .txt or .pdf invoice file for analysis</p>
 </div>
 
 <div class="row g-4">
@@ -37,17 +37,18 @@
               Drag & drop your invoice file here
             </p>
             <p style="color:var(--muted); font-size:0.78rem;">
-              Supports: .txt format only
+              Supports: .txt and .pdf formats
             </p>
-            <input type="file" id="fileInput" name="file" accept=".txt"
+            <!-- ✅ accept both .txt and .pdf -->
+            <input type="file" id="fileInput" name="file" accept=".txt,.pdf"
                    style="display:none;" onchange="handleFileSelect(this)"/>
           </div>
 
           <!-- Selected File Display -->
           <div id="fileDisplay" style="display:none; margin-top:16px; padding:12px 16px;
-               background:var(--surface2); border-radius:8px; display:none;
+               background:var(--surface2); border-radius:8px;
                align-items:center; gap:12px;">
-            <i class="bi bi-file-text" style="color:var(--accent); font-size:1.2rem;"></i>
+            <i class="bi bi-file-text" id="fileIcon" style="color:var(--accent); font-size:1.2rem;"></i>
             <div style="flex:1;">
               <div id="fileName" style="font-size:0.85rem; font-weight:500;"></div>
               <div id="fileSize" style="font-size:0.75rem; color:var(--muted);"></div>
@@ -74,11 +75,12 @@
       <div class="p-4">
         <div style="display:flex; flex-direction:column; gap:16px;">
           {% for step in [
-            ('1', 'bi-file-text', 'File Received', 'Invoice .txt file is saved securely'),
-            ('2', 'bi-cpu', 'Text Processing', 'OCR cleaning and field extraction'),
-            ('3', 'bi-shield-check', 'Validation', 'Math checks and integrity validation'),
-            ('4', 'bi-graph-up', 'Risk Scoring', 'Confidence and risk level assigned'),
-            ('5', 'bi-database', 'Stored', 'Result saved to database with audit log')
+            ('1', 'bi-file-text', 'File Received', 'Invoice .txt or .pdf file is saved securely'),
+            ('2', 'bi-filetype-pdf', 'PDF Conversion', 'PDF text extracted automatically if needed'),
+            ('3', 'bi-cpu', 'Text Processing', 'OCR cleaning and field extraction'),
+            ('4', 'bi-shield-check', 'Validation', 'Math checks and integrity validation'),
+            ('5', 'bi-graph-up', 'Risk Scoring', 'Confidence and risk level assigned'),
+            ('6', 'bi-database', 'Stored', 'Result saved to database with audit log')
           ] %}
           <div style="display:flex; align-items:flex-start; gap:12px;">
             <div style="width:28px; height:28px; border-radius:50%;
@@ -101,19 +103,34 @@
     </div>
 
     <div class="card">
-      <div class="card-header-custom">Sample Invoice Format</div>
+      <div class="card-header-custom">Supported Formats</div>
       <div class="p-4">
-        <pre style="font-family:var(--font-mono); font-size:0.72rem;
-                    color:var(--muted); white-space:pre-wrap; line-height:1.7;">Invoice No: 1042
+        <!-- TXT format -->
+        <div style="margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span class="badge-low" style="font-size:0.7rem;">TXT</span>
+            <span style="font-size:0.82rem; color:var(--text);">Plain text invoice</span>
+          </div>
+          <pre style="font-family:var(--font-mono); font-size:0.72rem;
+                      color:var(--muted); white-space:pre-wrap; line-height:1.7;">Invoice No: 1042
 Date: 12-03-2025
-Vendor: ABC Traders
-
-Items Purchased
-Laptop Dell qty 2 rate 45500 total 91000
-
 Sub Total 91000
 Tax 18 percent 16380
 Grand Total 107380</pre>
+        </div>
+        <!-- PDF format -->
+        <div style="border-top:1px solid var(--border); padding-top:16px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span class="badge-high" style="font-size:0.7rem;">PDF</span>
+            <span style="font-size:0.82rem; color:var(--text);">PDF invoice (text-based)</span>
+          </div>
+          <p style="font-size:0.78rem; color:var(--muted); line-height:1.6;">
+            Upload any text-based PDF invoice. Text is extracted automatically and processed through the same pipeline.
+            <br><br>
+            <i class="bi bi-info-circle" style="color:var(--accent);"></i>
+            Scanned/image PDFs are not supported — use text-based PDFs only.
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -151,6 +168,12 @@ function handleFileSelect(input) {
 function showFile(file) {
   document.getElementById('fileName').textContent = file.name;
   document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  // ✅ PDF vs TXT icon
+  const icon = document.getElementById('fileIcon');
+  icon.className = file.name.endsWith('.pdf')
+    ? 'bi bi-file-pdf'
+    : 'bi bi-file-text';
+  icon.style.color = file.name.endsWith('.pdf') ? 'var(--high)' : 'var(--accent)';
   fileDisplay.style.display = 'flex';
   submitBtn.style.opacity = '1';
   submitBtn.style.pointerEvents = 'auto';
