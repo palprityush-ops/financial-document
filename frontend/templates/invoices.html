@@ -33,7 +33,15 @@
 <div class="card fade-up fade-up-3">
   <div class="card-header-custom" style="display:flex; justify-content:space-between; align-items:center;">
     <span>Invoice Records</span>
-    <span class="mono" id="countLabel" style="color:var(--accent);">{{ invoices|length }} records</span>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="mono" id="countLabel" style="color:var(--accent);">{{ invoices|length }} records</span>
+      <!-- ✅ CSV Export Button -->
+      {% if invoices %}
+      <button onclick="exportCSV()" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px;">
+        <i class="bi bi-download"></i> Export CSV
+      </button>
+      {% endif %}
+    </div>
   </div>
 
   <div style="overflow-x:auto;">
@@ -53,7 +61,15 @@
       </thead>
       <tbody id="tableBody">
         {% for inv in invoices %}
-        <tr class="table-row" data-risk="{{ inv.risk|lower }}">
+        <tr class="table-row" data-risk="{{ inv.risk|lower }}"
+            data-source="{{ inv.source_file or '' }}"
+            data-bill="{{ inv.bill_number or '' }}"
+            data-date="{{ inv.invoice_date or '' }}"
+            data-subtotal="{{ inv.subtotal or '' }}"
+            data-tax="{{ inv.tax_amount or '' }}"
+            data-total="{{ inv.grand_total or '' }}"
+            data-conf="{{ inv.confidence or '' }}"
+            data-riskval="{{ inv.risk or '' }}">
           <td>
             <span class="mono" style="color:var(--muted); font-size:0.78rem;">
               <i class="bi bi-file-text" style="margin-right:4px;"></i>
@@ -137,6 +153,36 @@
     document.getElementById('searchInput').value = '';
     document.getElementById('riskFilter').value  = '';
     filterTable();
+  }
+
+  // ✅ CSV Export — visible rows only download hoti hain
+  function exportCSV() {
+    const rows = document.querySelectorAll('#tableBody .table-row');
+    const headers = ['Source File', 'Bill No', 'Date', 'Subtotal', 'Tax', 'Grand Total', 'Confidence', 'Risk'];
+    const csvRows = [headers.join(',')];
+
+    rows.forEach(function(row) {
+      if (row.style.display === 'none') return;
+      const cols = [
+        row.dataset.source,
+        row.dataset.bill,
+        row.dataset.date,
+        row.dataset.subtotal,
+        row.dataset.tax,
+        row.dataset.total,
+        row.dataset.conf,
+        row.dataset.riskval,
+      ];
+      csvRows.push(cols.map(v => '"' + (v || '') + '"').join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'evidentia_invoices.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 </script>
 {% endblock %}
