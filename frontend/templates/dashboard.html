@@ -2,6 +2,139 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+
+<!-- ── ONBOARDING TUTORIAL OVERLAY ── -->
+<div id="onboarding-overlay" style="
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+">
+  <div style="
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 20px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    overflow: hidden;
+  ">
+    <!-- Progress Bar -->
+    <div style="height: 3px; background: var(--border);">
+      <div id="ob-progress" style="height: 100%; background: var(--accent); transition: width 0.4s ease; width: 20%;"></div>
+    </div>
+
+    <!-- Step Content -->
+    <div style="padding: 32px 32px 24px;">
+
+      <!-- Step Icons + Text -->
+      <div id="ob-step-1" class="ob-step">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">👋</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Welcome to Evidentia!</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          Evidentia is your AI-powered financial document intelligence system. It automatically extracts, validates, and risk-scores invoices so you can focus on what matters.
+        </p>
+      </div>
+
+      <div id="ob-step-2" class="ob-step" style="display:none;">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">📤</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 1 — Upload an Invoice</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          Go to <strong style="color:var(--accent);">Upload</strong> in the sidebar and drop a <code style="background:var(--surface2); padding:2px 6px; border-radius:4px;">.txt</code> or <code style="background:var(--surface2); padding:2px 6px; border-radius:4px;">.pdf</code> invoice file. Evidentia handles both formats automatically.
+        </p>
+      </div>
+
+      <div id="ob-step-3" class="ob-step" style="display:none;">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">⚙️</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 2 — Run Batch Process</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          After uploading, go to <strong style="color:var(--accent);">Batch Process</strong> and click <em>Run Pipeline</em>. Evidentia will extract fields, validate totals, and score each invoice for risk.
+        </p>
+      </div>
+
+      <div id="ob-step-4" class="ob-step" style="display:none;">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">📊</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 3 — Review Results</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          Head to <strong style="color:var(--accent);">Invoices</strong> to browse all records. Filter by
+          <span style="color:var(--high); font-weight:600;">HIGH</span>,
+          <span style="color:var(--medium); font-weight:600;">MEDIUM</span>, or
+          <span style="color:var(--low); font-weight:600;">LOW</span> risk.
+          Export to CSV anytime.
+        </p>
+      </div>
+
+      <div id="ob-step-5" class="ob-step" style="display:none;">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">🛡️</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 4 — Check Audit Logs</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          Every action is recorded in <strong style="color:var(--accent);">Audit Logs</strong>. Track who processed what and when — full transparency and explainability built in.
+        </p>
+      </div>
+
+      <div id="ob-step-6" class="ob-step" style="display:none;">
+        <div style="font-size: 2.4rem; margin-bottom: 16px;">🚀</div>
+        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">You're all set!</h3>
+        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
+          Start by uploading your first invoice. If you ever need this tour again, click <strong style="color:var(--accent);">Help</strong> in the sidebar. Good luck!
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Footer: step counter + buttons -->
+    <div style="
+      padding: 16px 32px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+    ">
+      <!-- Step counter -->
+      <span id="ob-counter" style="font-size: 0.78rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;">
+        1 / 6
+      </span>
+
+      <!-- Buttons -->
+      <div style="display: flex; gap: 10px;">
+        <button onclick="skipTutorial()" style="
+          background: transparent;
+          border: 1px solid var(--border);
+          color: var(--muted);
+          padding: 8px 18px;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        " onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)'"
+           onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--muted)'">
+          Skip
+        </button>
+        <button id="ob-next-btn" onclick="nextStep()" style="
+          background: var(--accent);
+          border: none;
+          color: #fff;
+          padding: 8px 22px;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        " onmouseover="this.style.opacity='0.85'"
+           onmouseout="this.style.opacity='1'">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAGE CONTENT ── -->
 <div class="page-header fade-up fade-up-1">
   <h1>// RISK OVERVIEW</h1>
   <p>Real-time financial document intelligence dashboard</p>
@@ -134,6 +267,10 @@
         <a href="/audit" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
           <i class="bi bi-shield-check"></i> Audit Logs
         </a>
+        <!-- Help Button — re-trigger tutorial -->
+        <button onclick="startTutorial(true)" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:transparent;">
+          <i class="bi bi-question-circle"></i> Tour
+        </button>
       </div>
     </div>
   </div>
@@ -186,4 +323,66 @@
   });
 </script>
 {% endif %}
+
+<!-- ── ONBOARDING TUTORIAL SCRIPT ── -->
+<script>
+  const TOTAL_STEPS = 6;
+  let currentStep = 1;
+
+  function startTutorial(force = false) {
+    const seen = localStorage.getItem('evidentia_tour_done');
+    if (!force && seen) return;  // Already seen — don't show again
+    currentStep = 1;
+    showStep(1);
+    document.getElementById('onboarding-overlay').style.display = 'flex';
+  }
+
+  function showStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= TOTAL_STEPS; i++) {
+      const el = document.getElementById('ob-step-' + i);
+      if (el) el.style.display = 'none';
+    }
+    // Show current step
+    const current = document.getElementById('ob-step-' + step);
+    if (current) current.style.display = 'block';
+
+    // Update progress bar
+    const pct = (step / TOTAL_STEPS * 100).toFixed(0);
+    document.getElementById('ob-progress').style.width = pct + '%';
+
+    // Update counter
+    document.getElementById('ob-counter').textContent = step + ' / ' + TOTAL_STEPS;
+
+    // Last step — change button to "Get Started"
+    const btn = document.getElementById('ob-next-btn');
+    if (step === TOTAL_STEPS) {
+      btn.textContent = 'Get Started ✓';
+    } else {
+      btn.textContent = 'Next →';
+    }
+  }
+
+  function nextStep() {
+    if (currentStep < TOTAL_STEPS) {
+      currentStep++;
+      showStep(currentStep);
+    } else {
+      skipTutorial();
+    }
+  }
+
+  function skipTutorial() {
+    localStorage.setItem('evidentia_tour_done', '1');
+    const overlay = document.getElementById('onboarding-overlay');
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 300);
+  }
+
+  // Auto-start on first visit
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => startTutorial(false), 600);  // small delay so page loads first
+  });
+</script>
 {% endblock %}
