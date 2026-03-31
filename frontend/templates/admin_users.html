@@ -1,0 +1,128 @@
+{% extends "layout.html" %}
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up fade-up-1">
+  <h1>// USER MANAGEMENT</h1>
+  <p>Manage registered users and their access roles</p>
+</div>
+
+<!-- Role legend cards -->
+<div class="row g-3 mb-4 fade-up fade-up-2">
+  <div class="col-md-4">
+    <div class="card" style="padding:18px 22px; display:flex; align-items:center; gap:14px;">
+      <i class="bi bi-shield-fill-check" style="font-size:1.6rem; color:var(--accent);"></i>
+      <div>
+        <div style="font-size:0.72rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase;">Admin Role</div>
+        <div style="font-size:0.82rem; color:var(--text); margin-top:3px;">Upload · Batch · Audit · User Management</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card" style="padding:18px 22px; display:flex; align-items:center; gap:14px;">
+      <i class="bi bi-person-fill" style="font-size:1.6rem; color:var(--muted);"></i>
+      <div>
+        <div style="font-size:0.72rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase;">User Role</div>
+        <div style="font-size:0.82rem; color:var(--text); margin-top:3px;">Dashboard · Invoices (read-only)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card" style="padding:18px 22px; display:flex; align-items:center; gap:14px;">
+      <i class="bi bi-people-fill" style="font-size:1.6rem; color:var(--low);"></i>
+      <div>
+        <div style="font-size:0.72rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase;">Total Users</div>
+        <div style="font-family:var(--font-mono); font-size:1.6rem; color:var(--low); line-height:1;">{{ users|length }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Users Table -->
+<div class="card fade-up fade-up-3">
+  <div class="card-header-custom">
+    <i class="bi bi-people" style="margin-right:6px;"></i>Registered Users
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="ev-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Joined</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td class="mono" style="color:var(--muted);">{{ user.id }}</td>
+
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="bi bi-{% if user.role == 'admin' %}shield-fill-check{% else %}person-circle{% endif %}"
+                 style="color:{% if user.role == 'admin' %}var(--accent){% else %}var(--muted){% endif %};"></i>
+              <span style="font-weight:500;">{{ user.username }}</span>
+              {% if user.username == username %}
+              <span style="font-size:0.65rem; background:rgba(201,168,76,0.15); color:var(--accent); padding:2px 7px; border-radius:10px; border:1px solid rgba(201,168,76,0.3);">You</span>
+              {% endif %}
+            </div>
+          </td>
+
+          <td style="color:var(--muted); font-size:0.84rem;">{{ user.email }}</td>
+
+          <td>
+            {% if user.role == 'admin' %}
+            <span style="background:rgba(201,168,76,0.15); color:var(--accent); border:1px solid rgba(201,168,76,0.3); padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:600;">
+              <i class="bi bi-shield-fill-check"></i> Admin
+            </span>
+            {% else %}
+            <span style="background:rgba(90,115,153,0.15); color:var(--muted); border:1px solid rgba(90,115,153,0.3); padding:3px 10px; border-radius:20px; font-size:0.72rem; font-weight:600;">
+              <i class="bi bi-person-fill"></i> User
+            </span>
+            {% endif %}
+          </td>
+
+          <td class="mono" style="color:var(--muted); font-size:0.8rem;">
+            {{ user.created_at[:10] if user.created_at else '—' }}
+          </td>
+
+          <td>
+            {% if user.username != username %}
+              {% if user.role == 'user' %}
+              <form method="POST" action="/admin/promote/{{ user.username }}" style="display:inline;">
+                <button type="submit" class="btn-ev"
+                  style="padding:5px 14px; font-size:0.76rem; display:inline-flex; align-items:center; gap:5px;"
+                  onclick="return confirm('Promote {{ user.username }} to admin?')">
+                  <i class="bi bi-arrow-up-circle"></i> Promote
+                </button>
+              </form>
+              {% else %}
+              <form method="POST" action="/admin/demote/{{ user.username }}" style="display:inline;">
+                <button type="submit"
+                  style="background:transparent; border:1px solid var(--high); color:var(--high); padding:5px 14px; border-radius:8px; font-size:0.76rem; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"
+                  onclick="return confirm('Demote {{ user.username }} to user?')">
+                  <i class="bi bi-arrow-down-circle"></i> Demote
+                </button>
+              </form>
+              {% endif %}
+            {% else %}
+            <span style="font-size:0.76rem; color:var(--muted);">— current session</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:var(--muted); padding:40px;">
+            <i class="bi bi-people" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
+            No users found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

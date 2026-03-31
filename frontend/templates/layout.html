@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Evidentia – {% block title %}Financial Risk System{% endblock %}</title>
 
-  <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <!-- Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
@@ -40,7 +36,6 @@
       min-height: 100vh;
     }
 
-    /* ── SIDEBAR ─────────────────────────────── */
     .sidebar {
       position: fixed;
       top: 0; left: 0;
@@ -50,7 +45,6 @@
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      padding: 0;
       z-index: 100;
     }
 
@@ -78,6 +72,7 @@
     .sidebar-nav {
       padding: 16px 12px;
       flex: 1;
+      overflow-y: auto;
     }
 
     .nav-label {
@@ -103,18 +98,44 @@
       margin-bottom: 2px;
     }
 
-    .sidebar-nav a:hover {
-      background: var(--surface2);
-      color: var(--text);
-    }
-
+    .sidebar-nav a:hover { background: var(--surface2); color: var(--text); }
     .sidebar-nav a.active {
-      background: rgba(201, 168, 76, 0.12);
+      background: rgba(201,168,76,0.12);
       color: var(--accent);
       border-left: 2px solid var(--accent);
     }
-
     .sidebar-nav a i { font-size: 1rem; width: 18px; }
+
+    /* Admin-only nav items — subtle accent border */
+    .sidebar-nav a.admin-link {
+      border-left: 2px solid transparent;
+    }
+    .sidebar-nav a.admin-link:hover {
+      border-left-color: var(--accent);
+    }
+    .sidebar-nav a.admin-link.active {
+      border-left-color: var(--accent);
+    }
+
+    /* Role badge in sidebar */
+    .role-badge {
+      font-size: 0.62rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .role-badge.admin {
+      background: rgba(201,168,76,0.2);
+      color: var(--accent);
+      border: 1px solid rgba(201,168,76,0.4);
+    }
+    .role-badge.user {
+      background: rgba(90,115,153,0.2);
+      color: var(--muted);
+      border: 1px solid rgba(90,115,153,0.3);
+    }
 
     .sidebar-footer {
       padding: 16px 20px;
@@ -123,31 +144,21 @@
       color: var(--muted);
     }
 
-    /* ── MAIN CONTENT ────────────────────────── */
     .main-content {
       margin-left: 240px;
       min-height: 100vh;
       padding: 32px 36px;
     }
 
-    .page-header {
-      margin-bottom: 28px;
-    }
-
+    .page-header { margin-bottom: 28px; }
     .page-header h1 {
       font-family: var(--font-mono);
       font-size: 1.5rem;
       font-weight: 700;
       color: var(--text);
     }
+    .page-header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 
-    .page-header p {
-      color: var(--muted);
-      font-size: 0.85rem;
-      margin-top: 4px;
-    }
-
-    /* ── CARDS ───────────────────────────────── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -164,7 +175,6 @@
       text-transform: uppercase;
     }
 
-    /* ── STAT CARDS ──────────────────────────── */
     .stat-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -174,214 +184,89 @@
       overflow: hidden;
       transition: border-color 0.2s, transform 0.2s;
     }
-
-    .stat-card:hover {
-      transform: translateY(-2px);
-    }
-
-    .stat-card.high  { border-top: 3px solid var(--high); }
-    .stat-card.medium{ border-top: 3px solid var(--medium); }
-    .stat-card.low   { border-top: 3px solid var(--low); }
-    .stat-card.total { border-top: 3px solid var(--accent); }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card.high   { border-top: 3px solid var(--high); }
+    .stat-card.medium { border-top: 3px solid var(--medium); }
+    .stat-card.low    { border-top: 3px solid var(--low); }
+    .stat-card.total  { border-top: 3px solid var(--accent); }
 
     .stat-label {
-      font-size: 0.72rem;
-      color: var(--muted);
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
+      font-size: 0.72rem; color: var(--muted);
+      letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px;
     }
-
-    .stat-value {
-      font-family: var(--font-mono);
-      font-size: 2.2rem;
-      font-weight: 700;
-      line-height: 1;
-    }
-
+    .stat-value { font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700; line-height: 1; }
     .stat-value.high   { color: var(--high); }
     .stat-value.medium { color: var(--medium); }
     .stat-value.low    { color: var(--low); }
     .stat-value.total  { color: var(--accent); }
+    .stat-icon { position: absolute; right: 20px; top: 20px; font-size: 1.8rem; opacity: 0.15; }
 
-    .stat-icon {
-      position: absolute;
-      right: 20px;
-      top: 20px;
-      font-size: 1.8rem;
-      opacity: 0.15;
-    }
+    .badge-high   { background: rgba(239,68,68,0.15);   color: var(--high);   border: 1px solid rgba(239,68,68,0.3);   padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+    .badge-medium { background: rgba(245,158,11,0.15);  color: var(--medium); border: 1px solid rgba(245,158,11,0.3);  padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
+    .badge-low    { background: rgba(16,185,129,0.15);  color: var(--low);    border: 1px solid rgba(16,185,129,0.3);  padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; }
 
-    /* ── BADGES ──────────────────────────────── */
-    .badge-high   { background: rgba(239,68,68,0.15);   color: var(--high);   border: 1px solid rgba(239,68,68,0.3);   padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px; }
-    .badge-medium { background: rgba(245,158,11,0.15);  color: var(--medium); border: 1px solid rgba(245,158,11,0.3);  padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px; }
-    .badge-low    { background: rgba(16,185,129,0.15);  color: var(--low);    border: 1px solid rgba(16,185,129,0.3);  padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px; }
-
-    /* ── TABLE ───────────────────────────────── */
-    .ev-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 0.85rem;
-    }
-
+    .ev-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
     .ev-table thead th {
-      background: var(--surface2);
-      color: var(--muted);
-      font-size: 0.68rem;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 500;
+      background: var(--surface2); color: var(--muted);
+      font-size: 0.68rem; letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 500;
     }
-
-    .ev-table tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.1s;
-    }
-
+    .ev-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
     .ev-table tbody tr:hover { background: var(--surface2); }
-
-    .ev-table tbody td {
-      padding: 13px 16px;
-      color: var(--text);
-      vertical-align: middle;
-    }
-
+    .ev-table tbody td { padding: 13px 16px; color: var(--text); vertical-align: middle; }
     .ev-table tbody tr:last-child td { border-bottom: none; }
 
-    /* ── CONFIDENCE BAR ──────────────────────── */
-    .conf-bar {
-      width: 80px;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 6px;
-    }
-
-    .conf-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: var(--low);
-    }
-
+    .conf-bar { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .conf-fill { height: 100%; border-radius: 3px; background: var(--low); }
     .conf-fill.medium { background: var(--medium); }
     .conf-fill.low-conf { background: var(--high); }
 
-    /* ── BUTTONS ─────────────────────────────── */
     .btn-ev {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-family: var(--font-body);
-      font-size: 0.88rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
+      background: var(--accent); color: white; border: none;
+      padding: 10px 20px; border-radius: 8px;
+      font-family: var(--font-body); font-size: 0.88rem; font-weight: 500;
+      cursor: pointer; transition: opacity 0.15s, transform 0.1s;
     }
-
     .btn-ev:hover { opacity: 0.88; transform: translateY(-1px); }
 
     .btn-ev-outline {
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent);
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.15s;
-      text-decoration: none;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent);
+      padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
     }
+    .btn-ev-outline:hover { background: rgba(201,168,76,0.1); color: var(--accent); }
 
-    .btn-ev-outline:hover {
-      background: rgba(201,168,76,0.1);
-      color: var(--accent);
-    }
-
-    /* ── FORM INPUTS ─────────────────────────── */
     .ev-input {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 0.88rem;
-      width: 100%;
-      transition: border-color 0.15s;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 10px 14px;
+      font-size: 0.88rem; width: 100%; transition: border-color 0.15s;
     }
+    .ev-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+    .ev-label { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
 
-    .ev-input:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
-    }
-
-    .ev-label {
-      font-size: 0.78rem;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    /* ── UPLOAD ZONE ─────────────────────────── */
     .upload-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 48px 32px;
-      text-align: center;
-      transition: border-color 0.2s, background 0.2s;
-      cursor: pointer;
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 48px 32px; text-align: center;
+      transition: border-color 0.2s, background 0.2s; cursor: pointer;
     }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(201,168,76,0.05); }
+    .upload-zone i { font-size: 2.5rem; color: var(--muted); margin-bottom: 12px; }
 
-    .upload-zone:hover, .upload-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(201,168,76,0.05);
-    }
-
-    .upload-zone i {
-      font-size: 2.5rem;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    /* ── ALERTS ──────────────────────────────── */
-    .ev-alert {
-      padding: 14px 18px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
+    .ev-alert { padding: 14px 18px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
     .ev-alert.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: var(--low); }
     .ev-alert.error   { background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.3);  color: var(--high); }
     .ev-alert.info    { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--accent); }
 
-    /* ── MONO TEXT ───────────────────────────── */
     .mono { font-family: var(--font-mono); font-size: 0.82rem; }
 
-    /* ── SCROLLBAR ───────────────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bg); }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-    /* ── ANIMATIONS ──────────────────────────── */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
     .fade-up { animation: fadeUp 0.4s ease forwards; }
     .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
     .fade-up-2 { animation-delay: 0.1s;  opacity: 0; }
@@ -389,7 +274,6 @@
     .fade-up-4 { animation-delay: 0.2s;  opacity: 0; }
     .fade-up-5 { animation-delay: 0.25s; opacity: 0; }
 
-    /* ── RESPONSIVE ──────────────────────────── */
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main-content { margin-left: 0; padding: 20px; }
@@ -400,7 +284,6 @@
 </head>
 <body>
 
-<!-- ── SIDEBAR ── -->
 <aside class="sidebar">
   <div class="sidebar-brand">
     <div class="logo-text">EVIDENTIA</div>
@@ -408,6 +291,8 @@
   </div>
 
   <nav class="sidebar-nav">
+
+    <!-- Always visible -->
     <div class="nav-label">Main</div>
     <a href="/" class="{% if request.path == '/' %}active{% endif %}">
       <i class="bi bi-speedometer2"></i> Dashboard
@@ -415,35 +300,41 @@
     <a href="/invoices" class="{% if request.path == '/invoices' %}active{% endif %}">
       <i class="bi bi-file-earmark-text"></i> Invoices
     </a>
-    <a href="/upload" class="{% if request.path == '/upload' %}active{% endif %}">
+
+    <!-- Admin only -->
+    {% if session.role == 'admin' %}
+    <a href="/upload" class="admin-link {% if request.path == '/upload' %}active{% endif %}">
       <i class="bi bi-cloud-upload"></i> Upload
     </a>
 
     <div class="nav-label">Operations</div>
-    <a href="/batch" class="{% if request.path == '/batch' %}active{% endif %}">
+    <a href="/batch" class="admin-link {% if request.path == '/batch' %}active{% endif %}">
       <i class="bi bi-layers"></i> Batch Process
     </a>
-    <a href="/audit" class="{% if request.path == '/audit' %}active{% endif %}">
+    <a href="/audit" class="admin-link {% if request.path == '/audit' %}active{% endif %}">
       <i class="bi bi-shield-check"></i> Audit Logs
     </a>
+
+    <div class="nav-label">Admin</div>
+    <a href="/admin/users" class="admin-link {% if request.path == '/admin/users' %}active{% endif %}">
+      <i class="bi bi-people"></i> User Management
+    </a>
+    {% endif %}
+
   </nav>
 
-  <!-- ✅ Logout — sidebar ke andar, bilkul neeche -->
   <div class="sidebar-footer">
     {% if session.username %}
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-      <i class="bi bi-person-circle" style="color: var(--accent);"></i>
-      <span style="color: var(--text); font-size: 0.8rem;">{{ session.username }}</span>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="bi bi-person-circle" style="color:var(--accent);"></i>
+        <span style="color:var(--text); font-size:0.8rem;">{{ session.username }}</span>
+      </div>
+      <!-- Role badge -->
+      <span class="role-badge {{ session.role }}">{{ session.role }}</span>
     </div>
-    <a href="/logout" style="
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--high);
-      font-size: 0.78rem;
-      text-decoration: none;
-      transition: opacity 0.15s;
-    " onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+    <a href="/logout" style="display:flex; align-items:center; gap:6px; color:var(--high); font-size:0.78rem; text-decoration:none; transition:opacity 0.15s;"
+       onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
       <i class="bi bi-box-arrow-left"></i> Logout
     </a>
     {% else %}
@@ -453,7 +344,6 @@
   </div>
 </aside>
 
-<!-- ── MAIN ── -->
 <main class="main-content">
   {% block content %}{% endblock %}
 </main>

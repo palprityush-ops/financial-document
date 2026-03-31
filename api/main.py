@@ -23,13 +23,13 @@ from db.operations import (
     get_high_risk_invoices,
     save_user,
     get_user_by_username,
+    get_all_users,
+    update_user_role,
+    count_users,
 )
 from db.database import init_db
 from batch_runner import run_batch_pipeline
 
-# -------------------------
-# Rate Limiter Setup
-# -------------------------
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
@@ -39,16 +39,9 @@ app = FastAPI(
 
 A production-grade REST API for automated financial document analysis.
 
-### Features
-- **Invoice Processing** — Extract, validate and score financial documents
-- **Risk Assessment** — LOW / MEDIUM / HIGH risk classification with explainability
-- **Batch Processing** — Process multiple invoices in one pipeline run
-- **User Authentication** — JWT-based secure login and signup
-- **Audit Logging** — Full processing trail for every document
-- **PDF Support** — Upload PDF invoices directly
-
-### Authentication
-Protected endpoints require an API key in the `x-api-key` header.
+### Roles
+- **admin** — Full access: upload, batch, audit, user management
+- **user** — Read-only: dashboard and invoices
 
 ### Team
 - Prityush Pal (2415500358)
@@ -62,9 +55,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# -------------------------
-# Startup — DB init
-# -------------------------
 @app.on_event("startup")
 def startup():
     try:
@@ -74,9 +64,6 @@ def startup():
         print(f"DB init failed: {e}")
 
 
-# -------------------------
-# Security Headers Middleware
-# -------------------------
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -87,9 +74,6 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-# -------------------------
-# CORS
-# -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -104,9 +88,6 @@ API_KEY = "secret-admin-key"
 SECRET_KEY = "evidentia_jwt_secret_2024"
 
 
-# -------------------------
-# Pydantic Models
-# -------------------------
 class SignupRequest(BaseModel):
     username: str
     email: str
@@ -118,17 +99,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
-# -------------------------
-# Security: API Key
-# -------------------------
 def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
 
 
-# -------------------------
-# Security: JWT Token
-# -------------------------
 def verify_token(authorization: str = Header(...)):
     try:
         token = authorization.replace("Bearer ", "")
@@ -142,26 +117,18 @@ def verify_token(authorization: str = Header(...)):
         raise HTTPException(status_code=401, detail="Invalid authentication token.")
 
 
-# -------------------------
-# Health Check
-# -------------------------
-@app.get(
-    "/",
-    summary="Health Check",
-    description="Returns API status. Use this to verify the service is running.",
-    tags=["System"],
-)
+@app.get("/", summary="Health Check", tags=["System"])
 def health_check():
     return {"status": "ok", "message": "Financial Document Analysis API running"}
 
 
 # -------------------------
-# SIGNUP
+# SIGNUP — first user = admin
 # -------------------------
 @app.post(
     "/auth/signup",
     summary="Create a new user account",
-    description="Register a new user with username, email and password. Password must be at least 6 characters. Rate limited to 10 requests per minute.",
+    description="First user to sign up becomes admin. All others get 'user' role.",
     tags=["Authentication"],
 )
 @limiter.limit("10/minute")
@@ -177,47 +144,44 @@ def signup(request: Request, req: SignupRequest):
 
     existing = get_user_by_username(req.username.strip())
     if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="This username is already taken. Please choose another.",
-        )
+        raise HTTPException(status_code=400, detail="This username is already taken.")
 
     hashed = bcrypt.hashpw(req.password.encode(), bcrypt.gensalt()).decode()
 
     try:
-        save_user(req.username.strip(), req.email.strip(), hashed)
-        return {"message": f"Account created successfully. Welcome, {req.username}."}
+        total = count_users()
+        role = "admin" if total == 0 else "user"
+    except Exception:
+        role = "user"
+
+    try:
+        save_user(req.username.strip(), req.email.strip(), hashed, role)
+        return {
+            "message": f"Account created successfully. Welcome, {req.username}.",
+            "role": role,
+        }
     except Exception as e:
         error_msg = str(e).lower()
         if "unique" in error_msg or "duplicate" in error_msg:
             raise HTTPException(
-                status_code=400,
-                detail="This email address is already registered.",
+                status_code=400, detail="This email address is already registered."
             )
         raise HTTPException(
-            status_code=500,
-            detail=f"Account creation failed: {str(e)}",
+            status_code=500, detail=f"Account creation failed: {str(e)}"
         )
 
 
 # -------------------------
 # LOGIN
 # -------------------------
-@app.post(
-    "/auth/login",
-    summary="Authenticate user and get JWT token",
-    description="Login with username and password. Returns a JWT token valid for 24 hours. Rate limited to 5 requests per minute.",
-    tags=["Authentication"],
-)
+@app.post("/auth/login", summary="Authenticate user", tags=["Authentication"])
 @limiter.limit("5/minute")
 def login(request: Request, req: LoginRequest):
     user = get_user_by_username(req.username)
-
     if not user:
         raise HTTPException(
             status_code=401, detail="No account found with this username."
         )
-
     if not bcrypt.checkpw(req.password.encode(), user["password"].encode()):
         raise HTTPException(
             status_code=401, detail="Incorrect password. Please try again."
@@ -242,14 +206,8 @@ def login(request: Request, req: LoginRequest):
     }
 
 
-# -------------------------
-# Upload Invoice (.txt)
-# -------------------------
 @app.post(
-    "/upload-invoice/",
-    summary="Upload a .txt invoice file for processing",
-    description="Upload a .txt invoice file to the batch processing queue. Requires API key authentication.",
-    tags=["Invoice Processing"],
+    "/upload-invoice/", summary="Upload .txt invoice", tags=["Invoice Processing"]
 )
 async def upload_invoice(
     file: UploadFile = File(...), _: str = Depends(verify_api_key)
@@ -258,38 +216,24 @@ async def upload_invoice(
         raise HTTPException(
             status_code=400, detail="Only .txt invoice files are supported"
         )
-
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
-
     return {"status": "uploaded", "filename": file.filename}
 
 
-# -------------------------
-# Upload PDF Invoice
-# -------------------------
-@app.post(
-    "/upload-pdf/",
-    summary="Upload a PDF invoice file for processing",
-    description="Upload a PDF invoice. Text is extracted automatically using pdfplumber and saved as .txt for batch processing. Requires API key.",
-    tags=["Invoice Processing"],
-)
+@app.post("/upload-pdf/", summary="Upload PDF invoice", tags=["Invoice Processing"])
 async def upload_pdf(file: UploadFile = File(...), _: str = Depends(verify_api_key)):
     if not file.filename.endswith(".pdf"):
-        raise HTTPException(
-            status_code=400, detail="Only .pdf files are supported on this endpoint."
-        )
-
+        raise HTTPException(status_code=400, detail="Only .pdf files are supported.")
     try:
         import pdfplumber
 
         contents = await file.read()
         text = ""
-
         with pdfplumber.open(io.BytesIO(contents)) as pdf:
             for page in pdf.pages:
                 page_text = page.extract_text()
@@ -298,43 +242,28 @@ async def upload_pdf(file: UploadFile = File(...), _: str = Depends(verify_api_k
 
         if not text.strip():
             raise HTTPException(
-                status_code=400,
-                detail="No text could be extracted from this PDF. Please use a text-based PDF.",
+                status_code=400, detail="No text could be extracted from this PDF."
             )
 
-        # Save as .txt for batch processing
         txt_filename = file.filename.replace(".pdf", ".txt")
-        txt_path = os.path.join(UPLOAD_DIR, txt_filename)
-
-        with open(txt_path, "w", encoding="utf-8") as f:
+        with open(os.path.join(UPLOAD_DIR, txt_filename), "w", encoding="utf-8") as f:
             f.write(text)
 
         return {
             "status": "uploaded",
             "filename": txt_filename,
             "original": file.filename,
-            "pages_extracted": len(text.splitlines()),
-            "message": f"PDF converted to text and saved as '{txt_filename}'",
+            "message": f"PDF converted and saved as '{txt_filename}'",
         }
-
     except ImportError:
         raise HTTPException(
-            status_code=500,
-            detail="PDF processing library not available.",
+            status_code=500, detail="PDF processing library not available."
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF processing failed: {str(e)}")
 
 
-# -------------------------
-# Run Batch Pipeline
-# -------------------------
-@app.post(
-    "/run-batch/",
-    summary="Run the batch processing pipeline",
-    description="Processes all uploaded invoice files through the full pipeline: extraction, validation, risk scoring, explainability and persistence. Requires API key.",
-    tags=["Invoice Processing"],
-)
+@app.post("/run-batch/", summary="Run batch pipeline", tags=["Invoice Processing"])
 def run_batch(_: str = Depends(verify_api_key)):
     try:
         summary = run_batch_pipeline()
@@ -345,51 +274,23 @@ def run_batch(_: str = Depends(verify_api_key)):
         )
 
 
-# -------------------------
-# Fetch All Invoices
-# -------------------------
-@app.get(
-    "/invoices",
-    summary="Fetch all processed invoices",
-    description="Returns a paginated list of all processed invoices. Supports limit and offset for pagination.",
-    tags=["Invoices"],
-)
+@app.get("/invoices", summary="Fetch all invoices", tags=["Invoices"])
 def fetch_all_invoices(
-    limit: int = Query(20, ge=1, le=100, description="Number of records to return"),
-    offset: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)
 ):
     data = get_all_invoices(limit=limit, offset=offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
 
-# -------------------------
-# Fetch High Risk Invoices
-# -------------------------
-@app.get(
-    "/invoices/high-risk",
-    summary="Fetch high risk invoices only",
-    description="Returns only invoices classified as HIGH risk. Useful for prioritizing manual review.",
-    tags=["Invoices"],
-)
-def fetch_high_risk(
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-):
+@app.get("/invoices/high-risk", summary="Fetch high risk invoices", tags=["Invoices"])
+def fetch_high_risk(limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)):
     data = get_high_risk_invoices(limit=limit, offset=offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
 
-# -------------------------
-# Fetch by Risk
-# -------------------------
-@app.get(
-    "/invoices/by-risk",
-    summary="Filter invoices by risk level",
-    description="Filter invoices by risk level. Accepted values: low, medium, high.",
-    tags=["Invoices"],
-)
+@app.get("/invoices/by-risk", summary="Filter by risk level", tags=["Invoices"])
 def fetch_invoices_by_risk(
-    risk: str = Query(..., description="Risk level: low, medium, or high"),
+    risk: str = Query(...),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -406,18 +307,10 @@ def fetch_invoices_by_risk(
     }
 
 
-# -------------------------
-# Fetch by Date
-# -------------------------
-@app.get(
-    "/invoices/by-date",
-    summary="Filter invoices by date range",
-    description="Returns invoices processed within a given date range. Date format: YYYY-MM-DD.",
-    tags=["Invoices"],
-)
+@app.get("/invoices/by-date", summary="Filter by date range", tags=["Invoices"])
 def fetch_invoices_by_date(
-    start_date: str = Query(..., description="Start date in YYYY-MM-DD format"),
-    end_date: str = Query(..., description="End date in YYYY-MM-DD format"),
+    start_date: str = Query(...),
+    end_date: str = Query(...),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -430,15 +323,7 @@ def fetch_invoices_by_date(
     }
 
 
-# -------------------------
-# Audit Logs
-# -------------------------
-@app.get(
-    "/audit",
-    summary="Fetch audit logs",
-    description="Returns a full audit trail of all processed invoices including risk reasons. Requires API key authentication.",
-    tags=["Audit"],
-)
+@app.get("/audit", summary="Fetch audit logs", tags=["Audit"])
 def fetch_audit_logs(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -446,3 +331,30 @@ def fetch_audit_logs(
 ):
     data = get_audit_logs(limit, offset)
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
+
+
+# -------------------------
+# ADMIN endpoints
+# -------------------------
+@app.get("/admin/users", summary="List all users", tags=["Admin"])
+def list_users(_: str = Depends(verify_api_key)):
+    users = get_all_users()
+    return {"total": len(users), "users": users}
+
+
+@app.post("/admin/promote/{username}", summary="Promote user to admin", tags=["Admin"])
+def promote_user(username: str, _: str = Depends(verify_api_key)):
+    user = get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    update_user_role(username, "admin")
+    return {"message": f"{username} promoted to admin."}
+
+
+@app.post("/admin/demote/{username}", summary="Demote admin to user", tags=["Admin"])
+def demote_user(username: str, _: str = Depends(verify_api_key)):
+    user = get_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    update_user_role(username, "user")
+    return {"message": f"{username} demoted to user."}

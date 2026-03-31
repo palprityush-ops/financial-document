@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, abort
 import requests
 
 app = Flask(__name__)
@@ -15,14 +15,20 @@ def api_headers():
     return {"x-api-key": API_KEY}
 
 
-# ── Login Required Helper ─────────────────────────────────────────────────────
 def login_required():
     if "username" not in session:
         return redirect(url_for("login"))
     return None
 
 
-# ── Custom Error Handlers ─────────────────────────────────────────────────────
+def admin_required():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    if session.get("role") != "admin":
+        abort(403)
+    return None
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return (
@@ -58,25 +64,21 @@ def forbidden(e):
             "error.html",
             code=403,
             title="Access Denied",
-            message="You do not have permission to access this page.",
+            message="You do not have permission to access this page. Admin access required.",
             username=session.get("username"),
         ),
         403,
     )
 
 
-# ── Login ─────────────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "username" in session:
         return redirect(url_for("dashboard"))
-
     error = None
-
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-
         if not username or not password:
             error = "Please enter both username and password."
         else:
@@ -98,24 +100,19 @@ def login():
                     )
             except Exception:
                 error = "Unable to connect to the server. Please try again later."
-
     return render_template("login.html", error=error)
 
 
-# ── Signup ────────────────────────────────────────────────────────────────────
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if "username" in session:
         return redirect(url_for("dashboard"))
-
     error = None
     success = None
-
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
-
         if not username or not email or not password:
             error = "All fields are required."
         elif len(password) < 6:
@@ -135,36 +132,30 @@ def signup():
                     )
             except Exception:
                 error = "Unable to connect to the server. Please try again later."
-
     return render_template("signup.html", error=error, success=success)
 
 
-# ── Logout ────────────────────────────────────────────────────────────────────
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
 @app.route("/")
 def dashboard():
     check = login_required()
     if check:
         return check
-
     try:
         r = requests.get(f"{API_BASE}/invoices", timeout=5)
         data = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
-
     total = len(invoices)
     high = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
     medium = len([i for i in invoices if str(i.get("risk", "")).lower() == "medium"])
     low = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
-
     return render_template(
         "dashboard.html",
         total=total,
@@ -172,49 +163,45 @@ def dashboard():
         medium=medium,
         low=low,
         username=session.get("username"),
+        role=session.get("role"),
     )
 
 
-# ── Invoices ──────────────────────────────────────────────────────────────────
 @app.route("/invoices")
 def invoices():
     check = login_required()
     if check:
         return check
-
     try:
         r = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
         data = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
-
     return render_template(
         "invoices.html",
         invoices=invoices,
         username=session.get("username"),
+        role=session.get("role"),
     )
 
 
-# ── Upload ────────────────────────────────────────────────────────────────────
+# ── ADMIN ONLY ROUTES ─────────────────────────────────────────────────────────
+
+
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
-    check = login_required()
+    check = admin_required()
     if check:
         return check
-
     message = None
     success = False
-
     if request.method == "POST":
         file = request.files.get("file")
-
         if not file or file.filename == "":
             message = "No file selected. Please choose a .txt or .pdf invoice file."
         else:
             filename = file.filename.lower()
-
-            # ✅ PDF upload
             if filename.endswith(".pdf"):
                 try:
                     r = requests.post(
@@ -236,8 +223,6 @@ def upload():
                         )
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
-
-            # ✅ TXT upload
             elif filename.endswith(".txt"):
                 try:
                     r = requests.post(
@@ -247,10 +232,7 @@ def upload():
                         timeout=30,
                     )
                     if r.status_code == 200:
-                        message = (
-                            f"'{file.filename}' uploaded successfully!"
-                            " Ready for batch processing."
-                        )
+                        message = f"'{file.filename}' uploaded successfully! Ready for batch processing."
                         success = True
                     else:
                         message = (
@@ -258,64 +240,104 @@ def upload():
                         )
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
-
             else:
                 message = "Invalid file type. Only .txt and .pdf files are supported."
-
     return render_template(
         "upload.html",
         message=message,
         success=success,
         username=session.get("username"),
+        role=session.get("role"),
     )
 
 
-# ── Batch ─────────────────────────────────────────────────────────────────────
 @app.route("/batch", methods=["GET", "POST"])
 def batch():
-    check = login_required()
+    check = admin_required()
     if check:
         return check
-
     message = None
-
     if request.method == "POST":
         try:
             r = requests.post(
-                f"{API_BASE}/run-batch/",
-                headers=api_headers(),
-                timeout=30,
+                f"{API_BASE}/run-batch/", headers=api_headers(), timeout=30
             )
             message = r.json()
         except Exception as e:
             message = {"status": "error", "detail": str(e)}
-
     return render_template(
         "batch.html",
         message=message,
         username=session.get("username"),
+        role=session.get("role"),
     )
 
 
-# ── Audit ─────────────────────────────────────────────────────────────────────
 @app.route("/audit")
 def audit():
-    check = login_required()
+    check = admin_required()
     if check:
         return check
-
     try:
         r = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
         data = r.json()
         logs = data.get("data", [])
     except Exception:
         logs = []
-
     return render_template(
         "audit.html",
         logs=logs,
         username=session.get("username"),
+        role=session.get("role"),
     )
+
+
+@app.route("/admin/users")
+def admin_users():
+    check = admin_required()
+    if check:
+        return check
+    try:
+        r = requests.get(f"{API_BASE}/admin/users", headers=api_headers(), timeout=10)
+        users = r.json().get("users", [])
+    except Exception:
+        users = []
+    return render_template(
+        "admin_users.html",
+        users=users,
+        username=session.get("username"),
+        role=session.get("role"),
+    )
+
+
+@app.route("/admin/promote/<username>", methods=["POST"])
+def promote_user(username):
+    check = admin_required()
+    if check:
+        return check
+    try:
+        requests.post(
+            f"{API_BASE}/admin/promote/{username}", headers=api_headers(), timeout=10
+        )
+    except Exception:
+        pass
+    return redirect(url_for("admin_users"))
+
+
+@app.route("/admin/demote/<username>", methods=["POST"])
+def demote_user(username):
+    check = admin_required()
+    if check:
+        return check
+    if username == session.get("username"):
+        return redirect(url_for("admin_users"))
+    try:
+        requests.post(
+            f"{API_BASE}/admin/demote/{username}", headers=api_headers(), timeout=10
+        )
+    except Exception:
+        pass
+    return redirect(url_for("admin_users"))
 
 
 if __name__ == "__main__":
