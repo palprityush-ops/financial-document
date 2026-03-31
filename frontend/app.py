@@ -90,9 +90,9 @@ def login():
                 )
                 if r.status_code == 200:
                     data = r.json()
-                    session["username"] = data["username"]
-                    session["role"] = data["role"]
-                    session["token"] = data["token"]
+                    session["username"] = data.get("username", username)
+                    session["role"] = data.get("role", "user")
+                    session["token"] = data.get("token")
                     return redirect(url_for("dashboard"))
                 else:
                     error = r.json().get(

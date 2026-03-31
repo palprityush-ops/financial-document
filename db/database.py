@@ -1,12 +1,13 @@
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
+from sqlite3 import Row
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_PATH = os.environ.get("DATABASE_PATH", "db/finance.db")
 
 
 def get_connection():
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = Row
     return conn
 
 
@@ -16,7 +17,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS invoices (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_file TEXT,
             bill_number TEXT,
             invoice_date TEXT,
@@ -30,7 +31,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS risk_explanations (
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             invoice_id INTEGER,
             reason TEXT,
             FOREIGN KEY(invoice_id) REFERENCES invoices(id)
@@ -39,12 +40,12 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id         SERIAL PRIMARY KEY,
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
             username   TEXT UNIQUE NOT NULL,
             email      TEXT UNIQUE NOT NULL,
             password   TEXT NOT NULL,
             role       TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT NOW()
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 

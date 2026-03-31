@@ -14,7 +14,7 @@ def insert_invoice(invoice):
             source_file, bill_number, invoice_date,
             subtotal, tax_amount, grand_total,
             confidence, risk
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             invoice.get("source_file"),
@@ -28,12 +28,11 @@ def insert_invoice(invoice):
         ),
     )
 
-    cursor.execute("SELECT lastval()")
-    invoice_id = cursor.fetchone()["lastval"]
+    invoice_id = cursor.lastrowid
 
     for reason in invoice.get("risk_explanation", []):
         cursor.execute(
-            "INSERT INTO risk_explanations (invoice_id, reason) VALUES (%s, %s)",
+            "INSERT INTO risk_explanations (invoice_id, reason) VALUES (?, ?)",
             (invoice_id, reason),
         )
 
@@ -49,7 +48,7 @@ def get_all_invoices(limit=20, offset=0):
         """
         SELECT source_file, bill_number, invoice_date,
                subtotal, tax_amount, grand_total, confidence, risk
-        FROM invoices ORDER BY id DESC LIMIT %s OFFSET %s
+        FROM invoices ORDER BY id DESC LIMIT ? OFFSET ?
         """,
         (limit, offset),
     )
@@ -66,7 +65,7 @@ def get_high_risk_invoices(limit=20, offset=0):
         """
         SELECT source_file, bill_number, invoice_date,
                grand_total, confidence, risk
-        FROM invoices WHERE risk = 'high' ORDER BY id DESC LIMIT %s OFFSET %s
+        FROM invoices WHERE risk = 'high' ORDER BY id DESC LIMIT ? OFFSET ?
         """,
         (limit, offset),
     )
@@ -83,7 +82,7 @@ def get_invoices_by_risk(risk, limit=20, offset=0):
         """
         SELECT source_file, bill_number, invoice_date,
                grand_total, confidence, risk
-        FROM invoices WHERE risk = %s ORDER BY id DESC LIMIT %s OFFSET %s
+        FROM invoices WHERE risk = ? ORDER BY id DESC LIMIT ? OFFSET ?
         """,
         (risk, limit, offset),
     )
@@ -100,8 +99,8 @@ def get_invoices_by_date(start_date, end_date, limit=20, offset=0):
         """
         SELECT source_file, bill_number, invoice_date,
                grand_total, confidence, risk
-        FROM invoices WHERE invoice_date BETWEEN %s AND %s
-        ORDER BY id DESC LIMIT %s OFFSET %s
+        FROM invoices WHERE invoice_date BETWEEN ? AND ?
+        ORDER BY id DESC LIMIT ? OFFSET ?
         """,
         (start_date, end_date, limit, offset),
     )
@@ -119,7 +118,7 @@ def get_audit_logs(limit=50, offset=0):
         SELECT i.source_file, i.risk, i.confidence, r.reason
         FROM invoices i
         LEFT JOIN risk_explanations r ON i.id = r.invoice_id
-        ORDER BY i.id DESC LIMIT %s OFFSET %s
+        ORDER BY i.id DESC LIMIT ? OFFSET ?
         """,
         (limit, offset),
     )
@@ -151,7 +150,7 @@ def save_user(username, email, hashed_password, role="user"):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)",
         (username, email, hashed_password, role),
     )
     conn.commit()
@@ -163,7 +162,7 @@ def get_user_by_username(username):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, username, email, password, role FROM users WHERE username = %s",
+        "SELECT id, username, email, password, role FROM users WHERE username = ?",
         (username,),
     )
     row = cursor.fetchone()
@@ -194,7 +193,7 @@ def update_user_role(username, role):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE users SET role = %s WHERE username = %s",
+        "UPDATE users SET role = ? WHERE username = ?",
         (role, username),
     )
     conn.commit()
