@@ -1,136 +1,124 @@
 {% extends "layout.html" %}
 {% block title %}Dashboard{% endblock %}
 
-{% block content %}
+{% block head %}
+<style>
+  /* ── FLOATING TOUR ── */
+  .tour-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 5000;
+  }
+  .tour-overlay.active { display: block; }
 
-<!-- ── ONBOARDING TUTORIAL OVERLAY ── -->
-<div id="onboarding-overlay" style="
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  z-index: 9999;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-">
-  <div style="
+  .tour-highlight {
+    position: fixed;
+    border-radius: 8px;
+    box-shadow: 0 0 0 4000px rgba(0,0,0,0.55);
+    z-index: 5001;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    border: 2px solid var(--accent);
+  }
+
+  .tour-pulse {
+    position: fixed;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    z-index: 5002;
+    pointer-events: none;
+    animation: tourPulse 1.3s infinite;
+  }
+  @keyframes tourPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(201,168,76,0.7); }
+    70%  { box-shadow: 0 0 0 12px rgba(201,168,76,0); }
+    100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+  }
+
+  .tour-card {
+    position: fixed;
+    z-index: 5003;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    width: 100%;
-    max-width: 480px;
-    margin: 0 20px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-    overflow: hidden;
-  ">
-    <!-- Progress Bar -->
-    <div style="height: 3px; background: var(--border);">
-      <div id="ob-progress" style="height: 100%; background: var(--accent); transition: width 0.4s ease; width: 20%;"></div>
-    </div>
+    border-radius: 14px;
+    padding: 20px 22px;
+    width: 260px;
+    transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
 
-    <!-- Step Content -->
-    <div style="padding: 32px 32px 24px;">
+  .tour-step-label {
+    font-size: 0.68rem;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .tour-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .tour-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+  .tour-progress {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 16px;
+  }
+  .tour-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .tour-dot.done    { background: var(--low); }
+  .tour-dot.current { background: var(--accent); }
+  .tour-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tour-skip {
+    font-size: 0.78rem; color: var(--muted);
+    background: none; border: none; cursor: pointer; padding: 0;
+    transition: color 0.15s;
+  }
+  .tour-skip:hover { color: var(--text); }
+  .tour-next {
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 7px;
+    padding: 7px 16px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .tour-next:hover { opacity: 0.85; }
+</style>
+{% endblock %}
 
-      <!-- Step Icons + Text -->
-      <div id="ob-step-1" class="ob-step">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">👋</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Welcome to Evidentia!</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          Evidentia is your AI-powered financial document intelligence system. It automatically extracts, validates, and risk-scores invoices so you can focus on what matters.
-        </p>
-      </div>
+{% block content %}
 
-      <div id="ob-step-2" class="ob-step" style="display:none;">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">📤</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 1 — Upload an Invoice</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          Go to <strong style="color:var(--accent);">Upload</strong> in the sidebar and drop a <code style="background:var(--surface2); padding:2px 6px; border-radius:4px;">.txt</code> or <code style="background:var(--surface2); padding:2px 6px; border-radius:4px;">.pdf</code> invoice file. Evidentia handles both formats automatically.
-        </p>
-      </div>
+<!-- ── FLOATING TOUR ELEMENTS ── -->
+<div class="tour-overlay" id="tourOverlay"></div>
+<div class="tour-highlight" id="tourHighlight" style="display:none;"></div>
+<div class="tour-pulse"     id="tourPulse"     style="display:none;"></div>
 
-      <div id="ob-step-3" class="ob-step" style="display:none;">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">⚙️</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 2 — Run Batch Process</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          After uploading, go to <strong style="color:var(--accent);">Batch Process</strong> and click <em>Run Pipeline</em>. Evidentia will extract fields, validate totals, and score each invoice for risk.
-        </p>
-      </div>
-
-      <div id="ob-step-4" class="ob-step" style="display:none;">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">📊</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 3 — Review Results</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          Head to <strong style="color:var(--accent);">Invoices</strong> to browse all records. Filter by
-          <span style="color:var(--high); font-weight:600;">HIGH</span>,
-          <span style="color:var(--medium); font-weight:600;">MEDIUM</span>, or
-          <span style="color:var(--low); font-weight:600;">LOW</span> risk.
-          Export to CSV anytime.
-        </p>
-      </div>
-
-      <div id="ob-step-5" class="ob-step" style="display:none;">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">🛡️</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">Step 4 — Check Audit Logs</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          Every action is recorded in <strong style="color:var(--accent);">Audit Logs</strong>. Track who processed what and when — full transparency and explainability built in.
-        </p>
-      </div>
-
-      <div id="ob-step-6" class="ob-step" style="display:none;">
-        <div style="font-size: 2.4rem; margin-bottom: 16px;">🚀</div>
-        <h3 style="color: var(--text); font-size: 1.2rem; margin-bottom: 10px;">You're all set!</h3>
-        <p style="color: var(--muted); font-size: 0.88rem; line-height: 1.6;">
-          Start by uploading your first invoice. If you ever need this tour again, click <strong style="color:var(--accent);">Help</strong> in the sidebar. Good luck!
-        </p>
-      </div>
-
-    </div>
-
-    <!-- Footer: step counter + buttons -->
-    <div style="
-      padding: 16px 32px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid var(--border);
-    ">
-      <!-- Step counter -->
-      <span id="ob-counter" style="font-size: 0.78rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;">
-        1 / 6
-      </span>
-
-      <!-- Buttons -->
-      <div style="display: flex; gap: 10px;">
-        <button onclick="skipTutorial()" style="
-          background: transparent;
-          border: 1px solid var(--border);
-          color: var(--muted);
-          padding: 8px 18px;
-          border-radius: 8px;
-          font-size: 0.82rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        " onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)'"
-           onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--muted)'">
-          Skip
-        </button>
-        <button id="ob-next-btn" onclick="nextStep()" style="
-          background: var(--accent);
-          border: none;
-          color: #fff;
-          padding: 8px 22px;
-          border-radius: 8px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: opacity 0.2s;
-        " onmouseover="this.style.opacity='0.85'"
-           onmouseout="this.style.opacity='1'">
-          Next →
-        </button>
-      </div>
-    </div>
+<div class="tour-card" id="tourCard" style="display:none;">
+  <div class="tour-step-label" id="tour-step-label">Step 1 of 5</div>
+  <div class="tour-title"      id="tour-title"></div>
+  <div class="tour-desc"       id="tour-desc"></div>
+  <div class="tour-progress"   id="tour-progress"></div>
+  <div class="tour-actions">
+    <button class="tour-skip" onclick="endTour()">Skip tour</button>
+    <button class="tour-next" id="tour-next-btn" onclick="tourNext()">Next →</button>
   </div>
 </div>
 
@@ -175,7 +163,6 @@
 <!-- ── CHARTS ROW ── -->
 <div class="row g-3 mb-4">
 
-  <!-- Risk Distribution Donut -->
   <div class="col-md-5 fade-up fade-up-2">
     <div class="card h-100">
       <div class="card-header-custom">Risk Distribution</div>
@@ -192,14 +179,12 @@
     </div>
   </div>
 
-  <!-- Risk Exposure Bar -->
   <div class="col-md-7 fade-up fade-up-3">
     <div class="card h-100">
       <div class="card-header-custom">Risk Exposure Breakdown</div>
       <div class="p-4" style="min-height:260px; display:flex; align-items:center;">
         {% if total > 0 %}
         <div style="width:100%;">
-          <!-- High -->
           <div style="margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
               <span style="font-size:0.82rem; color:var(--high);">HIGH RISK</span>
@@ -209,7 +194,6 @@
               <div style="width:{{ (high/total*100)|round(1) }}%; background:var(--high); height:100%; border-radius:4px; transition:width 1s;"></div>
             </div>
           </div>
-          <!-- Medium -->
           <div style="margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
               <span style="font-size:0.82rem; color:var(--medium);">MEDIUM RISK</span>
@@ -219,7 +203,6 @@
               <div style="width:{{ (medium/total*100)|round(1) }}%; background:var(--medium); height:100%; border-radius:4px; transition:width 1s;"></div>
             </div>
           </div>
-          <!-- Low -->
           <div>
             <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
               <span style="font-size:0.82rem; color:var(--low);">LOW RISK</span>
@@ -229,8 +212,6 @@
               <div style="width:{{ (low/total*100)|round(1) }}%; background:var(--low); height:100%; border-radius:4px; transition:width 1s;"></div>
             </div>
           </div>
-
-          <!-- Exposure Score -->
           <div style="margin-top:28px; padding:14px 18px; background:var(--surface2); border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
             <span style="font-size:0.8rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase;">Risk Exposure Score</span>
             <span class="mono" style="font-size:1.2rem; color:{% if high/total > 0.3 %}var(--high){% elif high/total > 0.1 %}var(--medium){% else %}var(--low){% endif %};">
@@ -254,21 +235,24 @@
   <div class="col-12">
     <div class="card">
       <div class="card-header-custom">Quick Actions</div>
-      <div class="p-4" style="display:flex; gap:12px; flex-wrap:wrap;">
-        <a href="/upload" class="btn-ev" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+      <div class="p-4" style="display:flex; gap:12px; flex-wrap:wrap;" id="quick-actions">
+        {% if role == 'admin' %}
+        <a href="/upload" id="qa-upload" class="btn-ev" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
           <i class="bi bi-cloud-upload"></i> Upload Invoice
         </a>
-        <a href="/batch" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
+        <a href="/batch" id="qa-batch" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
           <i class="bi bi-layers"></i> Run Batch
         </a>
-        <a href="/invoices" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
+        {% endif %}
+        <a href="/invoices" id="qa-invoices" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
           <i class="bi bi-table"></i> View All Invoices
         </a>
-        <a href="/audit" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
+        {% if role == 'admin' %}
+        <a href="/audit" id="qa-audit" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px;">
           <i class="bi bi-shield-check"></i> Audit Logs
         </a>
-        <!-- Help Button — re-trigger tutorial -->
-        <button onclick="startTutorial(true)" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:transparent;">
+        {% endif %}
+        <button onclick="startTour(true)" id="qa-tour" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:transparent;">
           <i class="bi bi-question-circle"></i> Tour
         </button>
       </div>
@@ -280,18 +264,14 @@
 {% block scripts %}
 {% if total > 0 %}
 <script>
-  const ctx = document.getElementById('riskChart').getContext('2d');
+  var ctx = document.getElementById('riskChart').getContext('2d');
   new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['High Risk', 'Medium Risk', 'Low Risk'],
       datasets: [{
         data: [{{ high }}, {{ medium }}, {{ low }}],
-        backgroundColor: [
-          'rgba(224,82,82,0.85)',
-          'rgba(212,146,58,0.85)',
-          'rgba(58,173,122,0.85)'
-        ],
+        backgroundColor: ['rgba(224,82,82,0.85)', 'rgba(212,146,58,0.85)', 'rgba(58,173,122,0.85)'],
         borderColor: '#080d1a',
         borderWidth: 3,
         hoverOffset: 6
@@ -302,21 +282,11 @@
       plugins: {
         legend: {
           position: 'bottom',
-          labels: {
-            color: '#5a7399',
-            font: { family: 'DM Sans', size: 12 },
-            padding: 16,
-            usePointStyle: true,
-            pointStyleWidth: 8
-          }
+          labels: { color: '#5a7399', font: { family: 'DM Sans', size: 12 }, padding: 16, usePointStyle: true, pointStyleWidth: 8 }
         },
         tooltip: {
-          backgroundColor: '#111d35',
-          borderColor: '#1a2a4a',
-          borderWidth: 1,
-          titleColor: '#dce6f5',
-          bodyColor: '#5a7399',
-          padding: 12
+          backgroundColor: '#111d35', borderColor: '#1a2a4a', borderWidth: 1,
+          titleColor: '#dce6f5', bodyColor: '#5a7399', padding: 12
         }
       }
     }
@@ -324,65 +294,158 @@
 </script>
 {% endif %}
 
-<!-- ── ONBOARDING TUTORIAL SCRIPT ── -->
+<!-- ── FLOATING TOUR SCRIPT ── -->
 <script>
-  const TOTAL_STEPS = 6;
-  let currentStep = 1;
+  var userRole = '{{ role }}';
 
-  function startTutorial(force = false) {
-    const seen = localStorage.getItem('evidentia_tour_done');
-    if (!force && seen) return;  // Already seen — don't show again
-    currentStep = 1;
-    showStep(1);
-    document.getElementById('onboarding-overlay').style.display = 'flex';
+  var tourSteps = [
+    {
+      targetId: null,
+      title: 'Welcome to Evidentia!',
+      desc: 'This quick tour shows you the key features. It only takes 30 seconds.',
+      cardPos: { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+    },
+    {
+      targetSelector: 'a[href="/invoices"]',
+      title: 'Invoice Explorer',
+      desc: 'Browse all processed invoices. Filter by risk level, search by bill number, or export to CSV.',
+    },
+    {
+      targetSelector: userRole === 'admin' ? 'a[href="/upload"]' : null,
+      targetFallback: '#qa-invoices',
+      title: userRole === 'admin' ? 'Upload Invoices' : 'Risk Dashboard',
+      desc: userRole === 'admin'
+        ? 'Upload .txt or .pdf invoice files. PDFs are auto-converted for processing.'
+        : 'Your dashboard shows real-time risk stats — total, high, medium and low risk counts.',
+    },
+    {
+      targetSelector: userRole === 'admin' ? 'a[href="/batch"]' : null,
+      targetFallback: '#qa-tour',
+      title: userRole === 'admin' ? 'Batch Processing' : 'Take the Tour Anytime',
+      desc: userRole === 'admin'
+        ? 'After uploading, run the batch pipeline to extract fields, validate totals and score risk.'
+        : 'Click the Tour button anytime to replay this guide.',
+    },
+    {
+      targetSelector: userRole === 'admin' ? 'a[href="/audit"]' : '#qa-tour',
+      title: userRole === 'admin' ? 'Audit Logs' : 'You\'re all set!',
+      desc: userRole === 'admin'
+        ? 'Full transparency — every processed invoice is logged with its risk reason.'
+        : 'Start by browsing invoices. Contact your admin to upload new documents.',
+      isLast: true,
+    },
+  ];
+
+  if (userRole === 'admin') {
+    tourSteps.push({
+      targetId: 'qa-tour',
+      targetSelector: '#qa-tour',
+      title: "You're all set!",
+      desc: 'Click the Tour button anytime to replay this guide. Good luck!',
+      isLast: true,
+    });
   }
 
-  function showStep(step) {
-    // Hide all steps
-    for (let i = 1; i <= TOTAL_STEPS; i++) {
-      const el = document.getElementById('ob-step-' + i);
-      if (el) el.style.display = 'none';
-    }
-    // Show current step
-    const current = document.getElementById('ob-step-' + step);
-    if (current) current.style.display = 'block';
+  var tourCurrent = 0;
 
-    // Update progress bar
-    const pct = (step / TOTAL_STEPS * 100).toFixed(0);
-    document.getElementById('ob-progress').style.width = pct + '%';
+  function startTour(force) {
+    if (!force && localStorage.getItem('evidentia_tour_v2')) return;
+    tourCurrent = 0;
+    renderTourStep();
+  }
 
-    // Update counter
-    document.getElementById('ob-counter').textContent = step + ' / ' + TOTAL_STEPS;
+  function renderTourStep() {
+    var step = tourSteps[tourCurrent];
+    var overlay   = document.getElementById('tourOverlay');
+    var highlight = document.getElementById('tourHighlight');
+    var pulse     = document.getElementById('tourPulse');
+    var card      = document.getElementById('tourCard');
 
-    // Last step — change button to "Get Started"
-    const btn = document.getElementById('ob-next-btn');
-    if (step === TOTAL_STEPS) {
-      btn.textContent = 'Get Started ✓';
+    overlay.classList.add('active');
+
+    var target = null;
+    if (step.targetSelector) target = document.querySelector(step.targetSelector);
+    if (!target && step.targetId) target = document.getElementById(step.targetId);
+
+    if (target) {
+      var rect = target.getBoundingClientRect();
+      var pad  = 6;
+
+      highlight.style.display = 'block';
+      highlight.style.top    = (rect.top    - pad) + 'px';
+      highlight.style.left   = (rect.left   - pad) + 'px';
+      highlight.style.width  = (rect.width  + pad * 2) + 'px';
+      highlight.style.height = (rect.height + pad * 2) + 'px';
+
+      pulse.style.display = 'block';
+      pulse.style.top  = (rect.top  + rect.height / 2 - 7) + 'px';
+      pulse.style.left = (rect.left + rect.width  - 4) + 'px';
+
+      /* Position card: prefer right of target, fall back to left/bottom */
+      var cardTop  = rect.top;
+      var cardLeft = rect.right + 16;
+      if (cardLeft + 270 > window.innerWidth) cardLeft = rect.left - 276;
+      if (cardLeft < 8) cardLeft = 8;
+      if (cardTop + 200 > window.innerHeight) cardTop = window.innerHeight - 210;
+      if (cardTop < 8) cardTop = 8;
+
+      card.style.top       = cardTop + 'px';
+      card.style.left      = cardLeft + 'px';
+      card.style.transform = '';
+
     } else {
-      btn.textContent = 'Next →';
+      /* No target — center card */
+      highlight.style.display = 'none';
+      pulse.style.display     = 'none';
+      card.style.top       = '50%';
+      card.style.left      = '50%';
+      card.style.transform = 'translate(-50%, -50%)';
     }
+
+    card.style.display = 'block';
+
+    /* Content */
+    document.getElementById('tour-step-label').textContent =
+      'Step ' + (tourCurrent + 1) + ' of ' + tourSteps.length;
+    document.getElementById('tour-title').textContent = step.title;
+    document.getElementById('tour-desc').textContent  = step.desc;
+
+    /* Progress dots */
+    var prog = document.getElementById('tour-progress');
+    prog.innerHTML = '';
+    tourSteps.forEach(function(_, i) {
+      var d = document.createElement('div');
+      d.className = 'tour-dot' + (i < tourCurrent ? ' done' : i === tourCurrent ? ' current' : '');
+      prog.appendChild(d);
+    });
+
+    /* Button label */
+    var btn = document.getElementById('tour-next-btn');
+    var isLast = (tourCurrent === tourSteps.length - 1) || step.isLast;
+    btn.textContent = isLast ? 'Get Started' : 'Next →';
+    btn.onclick     = isLast ? endTour : tourNext;
   }
 
-  function nextStep() {
-    if (currentStep < TOTAL_STEPS) {
-      currentStep++;
-      showStep(currentStep);
+  function tourNext() {
+    tourCurrent++;
+    if (tourCurrent < tourSteps.length) {
+      renderTourStep();
     } else {
-      skipTutorial();
+      endTour();
     }
   }
 
-  function skipTutorial() {
-    localStorage.setItem('evidentia_tour_done', '1');
-    const overlay = document.getElementById('onboarding-overlay');
-    overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 300);
+  function endTour() {
+    localStorage.setItem('evidentia_tour_v2', '1');
+    document.getElementById('tourOverlay').classList.remove('active');
+    document.getElementById('tourHighlight').style.display = 'none';
+    document.getElementById('tourPulse').style.display     = 'none';
+    document.getElementById('tourCard').style.display      = 'none';
+    showToast('Tour complete! Click Tour anytime to replay.', 'info');
   }
 
-  // Auto-start on first visit
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => startTutorial(false), 600);  // small delay so page loads first
+  window.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() { startTour(false); }, 700);
   });
 </script>
 {% endblock %}

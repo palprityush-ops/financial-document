@@ -141,6 +141,49 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/profile", methods=["GET", "POST"])
+def profile():
+    check = login_required()
+    if check:
+        return check
+    error = None
+    success = None
+    if request.method == "POST":
+        old_password = request.form.get("old_password", "").strip()
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+        if not old_password or not new_password or not confirm_password:
+            error = "All fields are required."
+        elif len(new_password) < 6:
+            error = "New password must be at least 6 characters."
+        elif new_password != confirm_password:
+            error = "New passwords do not match."
+        else:
+            try:
+                r = requests.post(
+                    f"{API_BASE}/auth/change-password",
+                    json={
+                        "username": session["username"],
+                        "old_password": old_password,
+                        "new_password": new_password,
+                    },
+                    timeout=15,
+                )
+                if r.status_code == 200:
+                    success = "Password changed successfully."
+                else:
+                    error = r.json().get("detail", "Password change failed.")
+            except Exception:
+                error = "Unable to connect to the server. Please try again later."
+    return render_template(
+        "profile.html",
+        error=error,
+        success=success,
+        username=session.get("username"),
+        role=session.get("role"),
+    )
+
+
 @app.route("/")
 def dashboard():
     check = login_required()
@@ -184,6 +227,22 @@ def invoices():
         username=session.get("username"),
         role=session.get("role"),
     )
+
+
+@app.route("/invoices/delete/<int:invoice_id>", methods=["POST"])
+def delete_invoice(invoice_id):
+    check = admin_required()
+    if check:
+        return check
+    try:
+        requests.delete(
+            f"{API_BASE}/invoices/{invoice_id}",
+            headers=api_headers(),
+            timeout=10,
+        )
+    except Exception:
+        pass
+    return redirect(url_for("invoices"))
 
 
 # ── ADMIN ONLY ROUTES ─────────────────────────────────────────────────────────

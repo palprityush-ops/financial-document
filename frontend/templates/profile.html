@@ -1,0 +1,175 @@
+{% extends "layout.html" %}
+{% block title %}Change Password — Evidentia{% endblock %}
+
+{% block content %}
+<div class="page-header fade-up fade-up-1">
+  <h1>// ACCOUNT SETTINGS</h1>
+  <p>Manage your account security</p>
+</div>
+
+<div class="row g-4">
+  <!-- Password Change Card -->
+  <div class="col-md-6 fade-up fade-up-2">
+    <div class="card">
+      <div class="card-header-custom" style="display:flex; align-items:center; gap:8px;">
+        <i class="bi bi-lock-fill"></i> Change Password
+      </div>
+      <div class="p-4">
+
+        {% if error %}
+        <div class="ev-alert error">
+          <i class="bi bi-exclamation-triangle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <div class="ev-alert success">
+          <i class="bi bi-check-circle"></i> {{ success }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/profile" onsubmit="return validateForm()">
+          <div style="margin-bottom:18px;">
+            <label class="ev-label">Current Password</label>
+            <input type="password" name="old_password" id="old_password" required
+                   class="ev-input" placeholder="Enter your current password"/>
+          </div>
+
+          <div style="margin-bottom:18px;">
+            <label class="ev-label">New Password
+              <span style="color:var(--muted); font-size:0.72rem; margin-left:6px; font-weight:400; text-transform:none;">Minimum 6 characters</span>
+            </label>
+            <input type="password" name="new_password" id="new_password" required minlength="6"
+                   class="ev-input" placeholder="Enter new password" oninput="checkStrength()"/>
+            <!-- Password strength bar -->
+            <div style="margin-top:8px; height:4px; background:var(--border); border-radius:2px; overflow:hidden;">
+              <div id="strength-bar" style="height:100%; width:0%; border-radius:2px; transition:all 0.3s;"></div>
+            </div>
+            <div id="strength-label" style="font-size:0.72rem; color:var(--muted); margin-top:4px;"></div>
+          </div>
+
+          <div style="margin-bottom:28px;">
+            <label class="ev-label">Confirm New Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" required minlength="6"
+                   class="ev-input" placeholder="Re-enter new password" oninput="checkMatch()"/>
+            <div id="match-label" style="font-size:0.72rem; margin-top:4px;"></div>
+          </div>
+
+          <button type="submit" class="btn-ev" style="width:100%; display:flex; align-items:center; justify-content:center; gap:8px; font-size:0.9rem; padding:12px;">
+            <i class="bi bi-lock-fill"></i> Update Password
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account Info Card -->
+  <div class="col-md-6 fade-up fade-up-3">
+    <div class="card">
+      <div class="card-header-custom" style="display:flex; align-items:center; gap:8px;">
+        <i class="bi bi-person-badge"></i> Account Info
+      </div>
+      <div class="p-4">
+        <div style="margin-bottom:20px;">
+          <label class="ev-label">Username</label>
+          <div style="padding:10px 14px; background:var(--surface2); border-radius:8px; border:1px solid var(--border); font-family:var(--font-mono); font-size:0.88rem; color:var(--text);">
+            {{ username }}
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label class="ev-label">Role</label>
+          <div style="padding:10px 14px; background:var(--surface2); border-radius:8px; border:1px solid var(--border);">
+            <span class="role-badge {{ role or 'user' }}" style="font-size:0.75rem; padding:4px 12px;">
+              {{ role or 'user' }}
+            </span>
+          </div>
+        </div>
+
+        <div style="padding:14px 16px; background:rgba(201,168,76,0.06); border:1px solid rgba(201,168,76,0.2); border-radius:8px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <i class="bi bi-shield-check" style="color:var(--accent); margin-top:2px;"></i>
+            <div>
+              <div style="font-size:0.82rem; color:var(--accent); font-weight:600; margin-bottom:4px;">Security Tips</div>
+              <ul style="font-size:0.78rem; color:var(--muted); padding-left:16px; line-height:1.8;">
+                <li>Use at least 8 characters</li>
+                <li>Mix letters, numbers and symbols</li>
+                <li>Never share your password</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function checkStrength() {
+    var pw = document.getElementById('new_password').value;
+    var bar = document.getElementById('strength-bar');
+    var lbl = document.getElementById('strength-label');
+    var score = 0;
+    if (pw.length >= 6)  score++;
+    if (pw.length >= 10) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^a-zA-Z0-9]/.test(pw)) score++;
+    if (pw.length >= 14) score++;
+
+    var levels = [
+      { pct: '20%', color: '#e05252', label: 'Very weak' },
+      { pct: '40%', color: '#d4923a', label: 'Weak' },
+      { pct: '60%', color: '#d4c03a', label: 'Fair' },
+      { pct: '80%', color: '#3aad7a', label: 'Strong' },
+      { pct: '100%', color: '#3aad7a', label: 'Very strong' },
+    ];
+    var lvl = levels[Math.min(score - 1, 4)];
+    if (pw.length === 0) { bar.style.width = '0%'; lbl.textContent = ''; return; }
+    bar.style.width = lvl.pct;
+    bar.style.background = lvl.color;
+    lbl.textContent = lvl.label;
+    lbl.style.color = lvl.color;
+  }
+
+  function checkMatch() {
+    var pw  = document.getElementById('new_password').value;
+    var cfm = document.getElementById('confirm_password').value;
+    var lbl = document.getElementById('match-label');
+    if (!cfm) { lbl.textContent = ''; return; }
+    if (pw === cfm) {
+      lbl.textContent = 'Passwords match';
+      lbl.style.color = 'var(--low)';
+    } else {
+      lbl.textContent = 'Passwords do not match';
+      lbl.style.color = 'var(--high)';
+    }
+  }
+
+  function validateForm() {
+    var pw  = document.getElementById('new_password').value;
+    var cfm = document.getElementById('confirm_password').value;
+    if (pw !== cfm) {
+      showToast('New passwords do not match.', 'error');
+      return false;
+    }
+    if (pw.length < 6) {
+      showToast('Password must be at least 6 characters.', 'error');
+      return false;
+    }
+    return true;
+  }
+
+  {% if success %}
+  window.addEventListener('DOMContentLoaded', function() {
+    showToast('{{ success }}', 'success');
+  });
+  {% endif %}
+  {% if error %}
+  window.addEventListener('DOMContentLoaded', function() {
+    showToast('{{ error }}', 'error');
+  });
+  {% endif %}
+</script>
+{% endblock %}

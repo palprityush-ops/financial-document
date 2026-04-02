@@ -11,13 +11,11 @@
 <div class="card mb-4 fade-up fade-up-2">
   <div class="p-4" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
 
-    <!-- Search -->
     <div style="flex:1; min-width:180px;">
       <label class="ev-label">Search</label>
       <input type="text" class="ev-input" id="searchInput" placeholder="Bill no, file name..." oninput="filterTable()"/>
     </div>
 
-    <!-- Risk Filter -->
     <div style="min-width:140px;">
       <label class="ev-label">Risk Level</label>
       <select class="ev-input" id="riskFilter" onchange="filterTable()">
@@ -28,13 +26,11 @@
       </select>
     </div>
 
-    <!-- ✅ Amount Min -->
     <div style="min-width:120px;">
       <label class="ev-label">Min Amount (₹)</label>
       <input type="number" class="ev-input" id="minAmount" placeholder="0" min="0" oninput="filterTable()"/>
     </div>
 
-    <!-- ✅ Amount Max -->
     <div style="min-width:120px;">
       <label class="ev-label">Max Amount (₹)</label>
       <input type="number" class="ev-input" id="maxAmount" placeholder="Any" min="0" oninput="filterTable()"/>
@@ -73,6 +69,7 @@
           <th>Grand Total</th>
           <th>Confidence</th>
           <th>Risk</th>
+          {% if role == 'admin' %}<th style="width:60px;"></th>{% endif %}
         </tr>
       </thead>
       <tbody id="tableBody">
@@ -116,6 +113,18 @@
               <span class="badge-low">LOW</span>
             {% endif %}
           </td>
+          {% if role == 'admin' %}
+          <td>
+            <button
+              onclick="confirmDelete({{ inv.id }}, '{{ inv.source_file or 'this invoice' }}')"
+              title="Delete invoice"
+              style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px 6px; border-radius:6px; transition:all 0.15s;"
+              onmouseover="this.style.color='var(--high)'; this.style.background='rgba(224,82,82,0.1)'"
+              onmouseout="this.style.color='var(--muted)'; this.style.background='none'">
+              <i class="bi bi-trash3" style="font-size:0.9rem;"></i>
+            </button>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -138,21 +147,21 @@
   const totalRecords = {{ invoices|length }};
 
   function filterTable() {
-    const search    = document.getElementById('searchInput').value.toLowerCase().trim();
-    const risk      = document.getElementById('riskFilter').value.toLowerCase();
-    const minAmt    = parseFloat(document.getElementById('minAmount').value) || 0;
-    const maxAmt    = parseFloat(document.getElementById('maxAmount').value) || Infinity;
-    const rows      = document.querySelectorAll('#tableBody .table-row');
-    let visible     = 0;
+    var search  = document.getElementById('searchInput').value.toLowerCase().trim();
+    var risk    = document.getElementById('riskFilter').value.toLowerCase();
+    var minAmt  = parseFloat(document.getElementById('minAmount').value) || 0;
+    var maxAmt  = parseFloat(document.getElementById('maxAmount').value) || Infinity;
+    var rows    = document.querySelectorAll('#tableBody .table-row');
+    var visible = 0;
 
     rows.forEach(function(row) {
-      const text      = row.textContent.toLowerCase();
-      const rowRisk   = row.getAttribute('data-risk');
-      const rowTotal  = parseFloat(row.getAttribute('data-total')) || 0;
+      var text      = row.textContent.toLowerCase();
+      var rowRisk   = row.getAttribute('data-risk');
+      var rowTotal  = parseFloat(row.getAttribute('data-total')) || 0;
 
-      const matchSearch = !search || text.includes(search);
-      const matchRisk   = !risk   || rowRisk === risk;
-      const matchAmount = rowTotal >= minAmt && rowTotal <= maxAmt;
+      var matchSearch = !search || text.includes(search);
+      var matchRisk   = !risk   || rowRisk === risk;
+      var matchAmount = rowTotal >= minAmt && rowTotal <= maxAmt;
 
       if (matchSearch && matchRisk && matchAmount) {
         row.style.display = '';
@@ -162,8 +171,8 @@
       }
     });
 
-    const label = document.getElementById('countLabel');
-    const anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity;
+    var label = document.getElementById('countLabel');
+    var anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity;
     label.textContent = anyFilter
       ? visible + ' of ' + totalRecords + ' records'
       : totalRecords + ' records';
@@ -175,35 +184,32 @@
     document.getElementById('minAmount').value   = '';
     document.getElementById('maxAmount').value   = '';
     filterTable();
+    showToast('Filters cleared.', 'info');
   }
 
   function exportCSV() {
-    const rows = document.querySelectorAll('#tableBody .table-row');
-    const headers = ['Source File', 'Bill No', 'Date', 'Subtotal', 'Tax', 'Grand Total', 'Confidence', 'Risk'];
-    const csvRows = [headers.join(',')];
+    var rows = document.querySelectorAll('#tableBody .table-row');
+    var headers = ['Source File', 'Bill No', 'Date', 'Subtotal', 'Tax', 'Grand Total', 'Confidence', 'Risk'];
+    var csvRows = [headers.join(',')];
+    var count = 0;
 
     rows.forEach(function(row) {
       if (row.style.display === 'none') return;
-      const cols = [
-        row.dataset.source,
-        row.dataset.bill,
-        row.dataset.date,
-        row.dataset.subtotal,
-        row.dataset.tax,
-        row.dataset.total,
-        row.dataset.conf,
-        row.dataset.riskval,
+      var cols = [
+        row.dataset.source, row.dataset.bill, row.dataset.date,
+        row.dataset.subtotal, row.dataset.tax, row.dataset.total,
+        row.dataset.conf, row.dataset.riskval,
       ];
-      csvRows.push(cols.map(v => '"' + (v || '') + '"').join(','));
+      csvRows.push(cols.map(function(v) { return '"' + (v || '') + '"'; }).join(','));
+      count++;
     });
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = 'evidentia_invoices.csv';
-    a.click();
+    var blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'evidentia_invoices.csv'; a.click();
     URL.revokeObjectURL(url);
+    showToast(count + ' invoice' + (count !== 1 ? 's' : '') + ' exported to CSV.', 'success');
   }
 </script>
 {% endblock %}

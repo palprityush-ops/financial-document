@@ -212,3 +212,29 @@ def count_users():
     cursor.close()
     conn.close()
     return row["total"] if row else 0
+
+
+### db/operations.py mein YEH 2 FUNCTIONS ADD KARO — file ke LAST mein paste karo ###
+
+
+def delete_invoice(invoice_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM invoices WHERE id = %s", (invoice_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return deleted
+
+
+def update_user_password(username, new_hashed_password):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET password = %s WHERE username = %s",
+        (new_hashed_password, username),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()

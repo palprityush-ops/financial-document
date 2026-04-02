@@ -26,6 +26,8 @@ from db.operations import (
     get_all_users,
     update_user_role,
     count_users,
+    delete_invoice,
+    update_user_password,
 )
 from db.database import init_db
 from batch_runner import run_batch_pipeline
@@ -99,6 +101,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ChangePasswordRequest(BaseModel):
+    username: str
+    old_password: str
+    new_password: str
+
+
 def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API Key")
@@ -122,9 +130,6 @@ def health_check():
     return {"status": "ok", "message": "Financial Document Analysis API running"}
 
 
-# -------------------------
-# SIGNUP — first user = admin
-# -------------------------
 @app.post(
     "/auth/signup",
     summary="Create a new user account",
@@ -171,9 +176,6 @@ def signup(request: Request, req: SignupRequest):
         )
 
 
-# -------------------------
-# LOGIN
-# -------------------------
 @app.post("/auth/login", summary="Authenticate user", tags=["Authentication"])
 @limiter.limit("5/minute")
 def login(request: Request, req: LoginRequest):
@@ -204,6 +206,32 @@ def login(request: Request, req: LoginRequest):
         "role": user["role"],
         "message": "Login successful.",
     }
+
+
+@app.post(
+    "/auth/change-password",
+    summary="Change user password",
+    tags=["Authentication"],
+)
+@limiter.limit("5/minute")
+def change_password(request: Request, req: ChangePasswordRequest):
+    user = get_user_by_username(req.username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    if not bcrypt.checkpw(req.old_password.encode(), user["password"].encode()):
+        raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    if len(req.new_password) < 6:
+        raise HTTPException(
+            status_code=400, detail="New password must be at least 6 characters."
+        )
+    if req.old_password == req.new_password:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from current password.",
+        )
+    new_hashed = bcrypt.hashpw(req.new_password.encode(), bcrypt.gensalt()).decode()
+    update_user_password(req.username, new_hashed)
+    return {"message": "Password changed successfully."}
 
 
 @app.post(
@@ -323,6 +351,23 @@ def fetch_invoices_by_date(
     }
 
 
+@app.delete(
+    "/invoices/{invoice_id}",
+    summary="Delete an invoice by ID",
+    tags=["Invoices"],
+)
+def remove_invoice(invoice_id: int, _: str = Depends(verify_api_key)):
+    try:
+        deleted = delete_invoice(invoice_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Invoice not found.")
+        return {"message": f"Invoice {invoice_id} deleted successfully."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
+
+
 @app.get("/audit", summary="Fetch audit logs", tags=["Audit"])
 def fetch_audit_logs(
     limit: int = Query(50, ge=1, le=200),
@@ -333,9 +378,6 @@ def fetch_audit_logs(
     return {"limit": limit, "offset": offset, "count": len(data), "data": data}
 
 
-# -------------------------
-# ADMIN endpoints
-# -------------------------
 @app.get("/admin/users", summary="List all users", tags=["Admin"])
 def list_users(_: str = Depends(verify_api_key)):
     users = get_all_users()
