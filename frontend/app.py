@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, render_template, request, redirect, url_for, session, abort
+from flask import Flask, render_template, request, redirect, url_for, session, abort, flash
 import requests
 
 app = Flask(__name__)
@@ -8,7 +8,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "evidentia_flask_secret_2024")
 
 API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
-API_KEY = os.environ.get("API_KEY", "secret-admin-key")
+API_KEY  = os.environ.get("API_KEY",  "secret-admin-key")
+
+# Admin secret key — set this in your .env file
+ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "evidentia_admin_2024")
 
 
 def api_headers():
@@ -75,12 +78,45 @@ def forbidden(e):
 def login():
     if "username" in session:
         return redirect(url_for("dashboard"))
+
     error = None
+
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "").strip()
+        username  = request.form.get("username", "").strip()
+        password  = request.form.get("password", "").strip()
+        role      = request.form.get("role", "user")        # "admin" or "user"
+        admin_key = request.form.get("admin_key", "").strip()
+
         if not username or not password:
             error = "Please enter both username and password."
+
+        # ── ADMIN LOGIN ──────────────────────────────────────────────────────
+        elif role == "admin":
+            if admin_key != ADMIN_SECRET_KEY:
+                error = "Invalid admin secret key."
+            else:
+                try:
+                    r = requests.post(
+                        f"{API_BASE}/auth/login",
+                        json={"username": username, "password": password},
+                        timeout=30,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        # Accept only if backend also returns admin role
+                        if data.get("role", "user") != "admin":
+                            error = "This account does not have admin privileges."
+                        else:
+                            session["username"] = data.get("username", username)
+                            session["role"]     = "admin"
+                            session["token"]    = data.get("token")
+                            return redirect(url_for("dashboard"))
+                    else:
+                        error = r.json().get("detail", "Invalid credentials. Please try again.")
+                except Exception:
+                    error = "Unable to connect to the server. Please try again later."
+
+        # ── USER LOGIN ───────────────────────────────────────────────────────
         else:
             try:
                 r = requests.post(
@@ -91,15 +127,14 @@ def login():
                 if r.status_code == 200:
                     data = r.json()
                     session["username"] = data.get("username", username)
-                    session["role"] = data.get("role", "user")
-                    session["token"] = data.get("token")
+                    session["role"]     = data.get("role", "user")
+                    session["token"]    = data.get("token")
                     return redirect(url_for("dashboard"))
                 else:
-                    error = r.json().get(
-                        "detail", "Invalid credentials. Please try again."
-                    )
+                    error = r.json().get("detail", "Invalid credentials. Please try again.")
             except Exception:
                 error = "Unable to connect to the server. Please try again later."
+
     return render_template("login.html", error=error)
 
 
@@ -111,7 +146,7 @@ def signup():
     success = None
     if request.method == "POST":
         username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip()
+        email    = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
         if not username or not email or not password:
             error = "All fields are required."
@@ -149,8 +184,8 @@ def profile():
     error = None
     success = None
     if request.method == "POST":
-        old_password = request.form.get("old_password", "").strip()
-        new_password = request.form.get("new_password", "").strip()
+        old_password     = request.form.get("old_password", "").strip()
+        new_password     = request.form.get("new_password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
         if not old_password or not new_password or not confirm_password:
             error = "All fields are required."
@@ -163,7 +198,7 @@ def profile():
                 r = requests.post(
                     f"{API_BASE}/auth/change-password",
                     json={
-                        "username": session["username"],
+                        "username":     session["username"],
                         "old_password": old_password,
                         "new_password": new_password,
                     },
@@ -191,14 +226,14 @@ def dashboard():
         return check
     try:
         r = requests.get(f"{API_BASE}/invoices", timeout=5)
-        data = r.json()
+        data     = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
-    total = len(invoices)
-    high = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
+    total  = len(invoices)
+    high   = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
     medium = len([i for i in invoices if str(i.get("risk", "")).lower() == "medium"])
-    low = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
+    low    = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
     return render_template(
         "dashboard.html",
         total=total,
@@ -216,8 +251,8 @@ def invoices():
     if check:
         return check
     try:
-        r = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
-        data = r.json()
+        r        = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
+        data     = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
@@ -270,16 +305,14 @@ def upload():
                         timeout=30,
                     )
                     if r.status_code == 200:
-                        data = r.json()
+                        data    = r.json()
                         message = (
                             f"PDF '{file.filename}' uploaded and converted successfully! "
                             f"Saved as '{data.get('filename')}'. Ready for batch processing."
                         )
                         success = True
                     else:
-                        message = (
-                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
-                        )
+                        message = f"Upload failed: {r.json().get('detail', 'Unknown error')}"
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
             elif filename.endswith(".txt"):
@@ -294,9 +327,7 @@ def upload():
                         message = f"'{file.filename}' uploaded successfully! Ready for batch processing."
                         success = True
                     else:
-                        message = (
-                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
-                        )
+                        message = f"Upload failed: {r.json().get('detail', 'Unknown error')}"
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
             else:
@@ -318,9 +349,7 @@ def batch():
     message = None
     if request.method == "POST":
         try:
-            r = requests.post(
-                f"{API_BASE}/run-batch/", headers=api_headers(), timeout=30
-            )
+            r       = requests.post(f"{API_BASE}/run-batch/", headers=api_headers(), timeout=30)
             message = r.json()
         except Exception as e:
             message = {"status": "error", "detail": str(e)}
@@ -338,7 +367,7 @@ def audit():
     if check:
         return check
     try:
-        r = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
+        r    = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
         data = r.json()
         logs = data.get("data", [])
     except Exception:
@@ -357,7 +386,7 @@ def admin_users():
     if check:
         return check
     try:
-        r = requests.get(f"{API_BASE}/admin/users", headers=api_headers(), timeout=10)
+        r     = requests.get(f"{API_BASE}/admin/users", headers=api_headers(), timeout=10)
         users = r.json().get("users", [])
     except Exception:
         users = []
