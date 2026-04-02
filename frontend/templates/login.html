@@ -1,67 +1,525 @@
 {% extends "layout.html" %}
-{% block title %}Sign In — Evidentia{% endblock %}
-
+{% block title %}Login{% endblock %}
 {% block content %}
-<div style="min-height: 70vh; display: flex; align-items: center; justify-content: center;">
-  <div style="width: 100%; max-width: 420px;">
 
-    <div class="page-header fade-up fade-up-1" style="text-align: center; margin-bottom: 32px;">
-      <h1>// EVIDENTIA</h1>
-      <p>Financial Document Intelligence System</p>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    min-height: 100vh;
+  }
+
+  .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 20%, rgba(0,255,170,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(0,170,255,0.04) 0%, transparent 60%),
+      #0a0a0f;
+  }
+
+  /* ── ROLE SELECTOR WRAPPER ── */
+  .login-wrapper {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  /* ── BRAND ── */
+  .brand {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .brand-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #00ffaa;
+    text-shadow: 0 0 30px rgba(0,255,170,0.3);
+    margin-bottom: 0.3rem;
+  }
+
+  .brand-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.3);
+    text-transform: uppercase;
+  }
+
+  /* ── ROLE TOGGLE ── */
+  .role-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 2rem;
+    gap: 4px;
+  }
+
+  .role-btn {
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .role-btn svg {
+    width: 15px;
+    height: 15px;
+    opacity: 0.5;
+    transition: opacity 0.25s;
+  }
+
+  .role-btn.active-admin {
+    background: rgba(0, 255, 170, 0.12);
+    color: #00ffaa;
+    border: 1px solid rgba(0,255,170,0.25);
+  }
+
+  .role-btn.active-admin svg { opacity: 1; stroke: #00ffaa; }
+
+  .role-btn.active-user {
+    background: rgba(0, 170, 255, 0.12);
+    color: #00aaff;
+    border: 1px solid rgba(0,170,255,0.25);
+  }
+
+  .role-btn.active-user svg { opacity: 1; stroke: #00aaff; }
+
+  /* ── CARD ── */
+  .login-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ffaa, transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .login-card.admin-mode::before {
+    opacity: 1;
+    background: linear-gradient(90deg, transparent, #00ffaa, transparent);
+  }
+
+  .login-card.user-mode::before {
+    opacity: 1;
+    background: linear-gradient(90deg, transparent, #00aaff, transparent);
+  }
+
+  /* ── CARD HEADER ── */
+  .card-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    transition: color 0.3s;
+  }
+
+  .admin-mode .card-title { color: rgba(0,255,170,0.7); }
+  .user-mode .card-title  { color: rgba(0,170,255,0.7); }
+
+  .card-desc {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── FORM ── */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    display: block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 0.5rem;
+  }
+
+  .form-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.85);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .admin-mode .form-input:focus {
+    border-color: rgba(0,255,170,0.4);
+    box-shadow: 0 0 0 3px rgba(0,255,170,0.06);
+  }
+
+  .user-mode .form-input:focus {
+    border-color: rgba(0,170,255,0.4);
+    box-shadow: 0 0 0 3px rgba(0,170,255,0.06);
+  }
+
+  .form-input::placeholder {
+    color: rgba(255,255,255,0.18);
+  }
+
+  /* ── ADMIN KEY FIELD (hidden for user) ── */
+  .admin-only {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .admin-mode .admin-only {
+    display: block;
+    opacity: 1;
+  }
+
+  /* ── ROLE BADGE on input ── */
+  .input-wrapper {
+    position: relative;
+  }
+
+  .role-badge {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .admin-mode .role-badge {
+    background: rgba(0,255,170,0.1);
+    color: #00ffaa;
+    border: 1px solid rgba(0,255,170,0.2);
+  }
+
+  .user-mode .role-badge {
+    background: rgba(0,170,255,0.1);
+    color: #00aaff;
+    border: 1px solid rgba(0,170,255,0.2);
+  }
+
+  /* ── SUBMIT BUTTON ── */
+  .btn-login {
+    width: 100%;
+    padding: 0.85rem;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .admin-mode .btn-login {
+    background: linear-gradient(135deg, rgba(0,255,170,0.18), rgba(0,255,170,0.08));
+    color: #00ffaa;
+    border: 1px solid rgba(0,255,170,0.35);
+  }
+
+  .admin-mode .btn-login:hover {
+    background: linear-gradient(135deg, rgba(0,255,170,0.28), rgba(0,255,170,0.14));
+    box-shadow: 0 0 20px rgba(0,255,170,0.15);
+  }
+
+  .user-mode .btn-login {
+    background: linear-gradient(135deg, rgba(0,170,255,0.18), rgba(0,170,255,0.08));
+    color: #00aaff;
+    border: 1px solid rgba(0,170,255,0.35);
+  }
+
+  .user-mode .btn-login:hover {
+    background: linear-gradient(135deg, rgba(0,170,255,0.28), rgba(0,170,255,0.14));
+    box-shadow: 0 0 20px rgba(0,170,255,0.15);
+  }
+
+  .btn-login:active { transform: scale(0.98); }
+
+  /* ── ACCESS LEVEL INDICATOR ── */
+  .access-level {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+  }
+
+  .admin-mode .access-level {
+    background: rgba(0,255,170,0.06);
+    border: 1px solid rgba(0,255,170,0.15);
+    color: rgba(0,255,170,0.6);
+  }
+
+  .user-mode .access-level {
+    background: rgba(0,170,255,0.06);
+    border: 1px solid rgba(0,170,255,0.15);
+    color: rgba(0,170,255,0.6);
+  }
+
+  .access-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse-dot 2s infinite;
+  }
+
+  .admin-mode .access-dot { background: #00ffaa; }
+  .user-mode .access-dot  { background: #00aaff; }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── FLASH MESSAGES ── */
+  .flash-msg {
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 1.25rem;
+    border: 1px solid rgba(255, 80, 80, 0.25);
+    background: rgba(255, 80, 80, 0.08);
+    color: rgba(255, 120, 120, 0.9);
+  }
+
+  /* ── FOOTER LINK ── */
+  .login-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── SCAN LINE DECORATION ── */
+  .scanline {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 100vh;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
+
+<div class="scanline"></div>
+
+<div class="login-page">
+  <div class="login-wrapper">
+
+    <!-- BRAND -->
+    <div class="brand">
+      <div class="brand-logo">// EVIDENTIA</div>
+      <div class="brand-sub">Financial Document Intelligence System</div>
     </div>
 
-    <div class="card fade-up fade-up-2">
-      <div class="card-header-custom" style="display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-lock"></i> SECURE LOGIN
+    <!-- ROLE TOGGLE -->
+    <div class="role-toggle">
+      <button class="role-btn active-admin" id="btn-admin" onclick="setRole('admin')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+        </svg>
+        ADMIN
+      </button>
+      <button class="role-btn" id="btn-user" onclick="setRole('user')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+        USER
+      </button>
+    </div>
+
+    <!-- LOGIN CARD -->
+    <div class="login-card admin-mode" id="login-card">
+
+      <!-- TOP LINE: access level indicator -->
+      <div class="access-level" id="access-level">
+        <div class="access-dot"></div>
+        <span id="access-text">ADMIN ACCESS — Full system control granted</span>
       </div>
-      <div class="p-4">
 
-        {% if error %}
-        <div class="ev-alert error">
-          <i class="bi bi-exclamation-triangle"></i> {{ error }}
-        </div>
+      <!-- CARD HEADER -->
+      <div class="card-header">
+        <div class="card-title" id="card-title">// ADMIN PORTAL</div>
+        <div class="card-desc" id="card-desc">Authenticate with elevated credentials</div>
+      </div>
+
+      <!-- FLASH MESSAGES -->
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="flash-msg">⚠ {{ msg }}</div>
+          {% endfor %}
         {% endif %}
+      {% endwith %}
 
-        <form method="POST" action="/login">
+      <!-- FORM -->
+      <form method="POST" action="{{ url_for('login') }}" id="login-form">
+        <input type="hidden" name="role" id="role-input" value="admin">
 
-          <div style="margin-bottom: 18px;">
-            <label class="ev-label">Username</label>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="input-wrapper">
             <input
               type="text"
               name="username"
-              required
+              class="form-input"
+              placeholder="enter username"
               autocomplete="username"
-              placeholder="Enter your username"
-              class="ev-input"
-            />
-          </div>
-
-          <div style="margin-bottom: 28px;">
-            <label class="ev-label">Password</label>
-            <input
-              type="password"
-              name="password"
               required
-              autocomplete="current-password"
-              placeholder="Enter your password"
-              class="ev-input"
-            />
+            >
+            <span class="role-badge" id="role-badge">ADMIN</span>
           </div>
-
-          <button type="submit" class="btn-ev" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 12px; display: flex; align-items: center; gap: 8px;">
-            <i class="bi bi-box-arrow-in-right"></i> Sign In
-          </button>
-
-        </form>
-
-        <div style="text-align: center; margin-top: 20px; font-size: 0.83rem; color: var(--muted);">
-          Don't have an account?
-          <a href="/signup" style="color: var(--accent); text-decoration: none; margin-left: 4px;">Create one</a>
         </div>
 
-      </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input
+            type="password"
+            name="password"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <!-- ADMIN ONLY: Secret Key -->
+        <div class="form-group admin-only" id="admin-key-group">
+          <label class="form-label">Admin Secret Key</label>
+          <input
+            type="password"
+            name="admin_key"
+            class="form-input"
+            placeholder="enter admin key"
+            autocomplete="off"
+          >
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-submit">
+          ↳ AUTHENTICATE AS ADMIN
+        </button>
+      </form>
+    </div>
+
+    <div class="login-footer">
+      GLA University &nbsp;·&nbsp; BTech CS &nbsp;·&nbsp; Mini Project 2024
     </div>
 
   </div>
 </div>
+
+<script>
+  function setRole(role) {
+    const card = document.getElementById('login-card');
+    const btnAdmin = document.getElementById('btn-admin');
+    const btnUser = document.getElementById('btn-user');
+    const roleInput = document.getElementById('role-input');
+    const cardTitle = document.getElementById('card-title');
+    const cardDesc = document.getElementById('card-desc');
+    const accessText = document.getElementById('access-text');
+    const roleBadge = document.getElementById('role-badge');
+    const btnSubmit = document.getElementById('btn-submit');
+    const adminKeyGroup = document.getElementById('admin-key-group');
+    const adminKeyInput = document.querySelector('[name="admin_key"]');
+
+    if (role === 'admin') {
+      card.className = 'login-card admin-mode';
+      btnAdmin.className = 'role-btn active-admin';
+      btnUser.className = 'role-btn';
+      roleInput.value = 'admin';
+      cardTitle.textContent = '// ADMIN PORTAL';
+      cardDesc.textContent = 'Authenticate with elevated credentials';
+      accessText.textContent = 'ADMIN ACCESS — Full system control granted';
+      roleBadge.textContent = 'ADMIN';
+      btnSubmit.textContent = '↳ AUTHENTICATE AS ADMIN';
+      adminKeyGroup.style.display = 'block';
+      adminKeyGroup.style.opacity = '1';
+      if (adminKeyInput) adminKeyInput.required = true;
+    } else {
+      card.className = 'login-card user-mode';
+      btnAdmin.className = 'role-btn';
+      btnUser.className = 'role-btn active-user';
+      roleInput.value = 'user';
+      cardTitle.textContent = '// USER PORTAL';
+      cardDesc.textContent = 'Authenticate to access your documents';
+      accessText.textContent = 'USER ACCESS — Read & upload permissions';
+      roleBadge.textContent = 'USER';
+      btnSubmit.textContent = '↳ AUTHENTICATE AS USER';
+      adminKeyGroup.style.display = 'none';
+      adminKeyGroup.style.opacity = '0';
+      if (adminKeyInput) adminKeyInput.required = false;
+    }
+  }
+
+  // Auto-switch based on URL param e.g. /login?role=user
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('role') === 'user') setRole('user');
+</script>
+
 {% endblock %}
