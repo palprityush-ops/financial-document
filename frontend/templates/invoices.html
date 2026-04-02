@@ -10,11 +10,15 @@
 <!-- ── FILTERS ── -->
 <div class="card mb-4 fade-up fade-up-2">
   <div class="p-4" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-    <div style="flex:1; min-width:200px;">
+
+    <!-- Search -->
+    <div style="flex:1; min-width:180px;">
       <label class="ev-label">Search</label>
       <input type="text" class="ev-input" id="searchInput" placeholder="Bill no, file name..." oninput="filterTable()"/>
     </div>
-    <div style="min-width:160px;">
+
+    <!-- Risk Filter -->
+    <div style="min-width:140px;">
       <label class="ev-label">Risk Level</label>
       <select class="ev-input" id="riskFilter" onchange="filterTable()">
         <option value="">All Risks</option>
@@ -23,6 +27,19 @@
         <option value="low">Low</option>
       </select>
     </div>
+
+    <!-- ✅ Amount Min -->
+    <div style="min-width:120px;">
+      <label class="ev-label">Min Amount (₹)</label>
+      <input type="number" class="ev-input" id="minAmount" placeholder="0" min="0" oninput="filterTable()"/>
+    </div>
+
+    <!-- ✅ Amount Max -->
+    <div style="min-width:120px;">
+      <label class="ev-label">Max Amount (₹)</label>
+      <input type="number" class="ev-input" id="maxAmount" placeholder="Any" min="0" oninput="filterTable()"/>
+    </div>
+
     <button class="btn-ev-outline" onclick="clearFilters()" style="display:inline-flex; align-items:center; gap:6px;">
       <i class="bi bi-x-circle"></i> Clear
     </button>
@@ -35,7 +52,6 @@
     <span>Invoice Records</span>
     <div style="display:flex; align-items:center; gap:12px;">
       <span class="mono" id="countLabel" style="color:var(--accent);">{{ invoices|length }} records</span>
-      <!-- ✅ CSV Export Button -->
       {% if invoices %}
       <button onclick="exportCSV()" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px;">
         <i class="bi bi-download"></i> Export CSV
@@ -67,7 +83,7 @@
             data-date="{{ inv.invoice_date or '' }}"
             data-subtotal="{{ inv.subtotal or '' }}"
             data-tax="{{ inv.tax_amount or '' }}"
-            data-total="{{ inv.grand_total or '' }}"
+            data-total="{{ inv.grand_total or 0 }}"
             data-conf="{{ inv.confidence or '' }}"
             data-riskval="{{ inv.risk or '' }}">
           <td>
@@ -122,18 +138,23 @@
   const totalRecords = {{ invoices|length }};
 
   function filterTable() {
-    const search = document.getElementById('searchInput').value.toLowerCase().trim();
-    const risk   = document.getElementById('riskFilter').value.toLowerCase();
-    const rows   = document.querySelectorAll('#tableBody .table-row');
-    let visible  = 0;
+    const search    = document.getElementById('searchInput').value.toLowerCase().trim();
+    const risk      = document.getElementById('riskFilter').value.toLowerCase();
+    const minAmt    = parseFloat(document.getElementById('minAmount').value) || 0;
+    const maxAmt    = parseFloat(document.getElementById('maxAmount').value) || Infinity;
+    const rows      = document.querySelectorAll('#tableBody .table-row');
+    let visible     = 0;
 
     rows.forEach(function(row) {
-      const text    = row.textContent.toLowerCase();
-      const rowRisk = row.getAttribute('data-risk');
+      const text      = row.textContent.toLowerCase();
+      const rowRisk   = row.getAttribute('data-risk');
+      const rowTotal  = parseFloat(row.getAttribute('data-total')) || 0;
+
       const matchSearch = !search || text.includes(search);
       const matchRisk   = !risk   || rowRisk === risk;
+      const matchAmount = rowTotal >= minAmt && rowTotal <= maxAmt;
 
-      if (matchSearch && matchRisk) {
+      if (matchSearch && matchRisk && matchAmount) {
         row.style.display = '';
         visible++;
       } else {
@@ -142,20 +163,20 @@
     });
 
     const label = document.getElementById('countLabel');
-    if (search || risk) {
-      label.textContent = visible + ' of ' + totalRecords + ' records';
-    } else {
-      label.textContent = totalRecords + ' records';
-    }
+    const anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity;
+    label.textContent = anyFilter
+      ? visible + ' of ' + totalRecords + ' records'
+      : totalRecords + ' records';
   }
 
   function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('riskFilter').value  = '';
+    document.getElementById('minAmount').value   = '';
+    document.getElementById('maxAmount').value   = '';
     filterTable();
   }
 
-  // ✅ CSV Export — visible rows only download hoti hain
   function exportCSV() {
     const rows = document.querySelectorAll('#tableBody .table-row');
     const headers = ['Source File', 'Bill No', 'Date', 'Subtotal', 'Tax', 'Grand Total', 'Confidence', 'Risk'];
