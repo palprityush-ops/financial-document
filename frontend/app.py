@@ -1,17 +1,23 @@
 import os
+import random
+from datetime import datetime, timedelta
 
-from flask import Flask, render_template, request, redirect, url_for, session, abort, flash
 import requests
+from flask import Flask, abort, redirect, render_template, request, session, url_for
 
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY", "evidentia_flask_secret_2024")
 
 API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
-API_KEY  = os.environ.get("API_KEY",  "secret-admin-key")
+API_KEY = os.environ.get("API_KEY", "secret-admin-key")
 
 # Admin secret key — set this in your .env file
 ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "evidentia_admin_2024")
+
+# In-memory OTP store — use Redis in production
+# Format: { email: { otp: "123456", expires: datetime } }
+_otp_store = {}
 
 
 def api_headers():
@@ -30,6 +36,10 @@ def admin_required():
     if session.get("role") != "admin":
         abort(403)
     return None
+
+
+def _generate_otp():
+    return "".join(random.choices("0123456789", k=6))
 
 
 @app.errorhandler(404)
@@ -82,15 +92,15 @@ def login():
     error = None
 
     if request.method == "POST":
-        username  = request.form.get("username", "").strip()
-        password  = request.form.get("password", "").strip()
-        role      = request.form.get("role", "user")        # "admin" or "user"
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
+        role = request.form.get("role", "user")
         admin_key = request.form.get("admin_key", "").strip()
 
         if not username or not password:
             error = "Please enter both username and password."
 
-        # ── ADMIN LOGIN ──────────────────────────────────────────────────────
+        # ── ADMIN LOGIN ───────────────────────────────────────────────────────
         elif role == "admin":
             if admin_key != ADMIN_SECRET_KEY:
                 error = "Invalid admin secret key."
@@ -103,20 +113,21 @@ def login():
                     )
                     if r.status_code == 200:
                         data = r.json()
-                        # Accept only if backend also returns admin role
                         if data.get("role", "user") != "admin":
                             error = "This account does not have admin privileges."
                         else:
                             session["username"] = data.get("username", username)
-                            session["role"]     = "admin"
-                            session["token"]    = data.get("token")
+                            session["role"] = "admin"
+                            session["token"] = data.get("token")
                             return redirect(url_for("dashboard"))
                     else:
-                        error = r.json().get("detail", "Invalid credentials. Please try again.")
+                        error = r.json().get(
+                            "detail", "Invalid credentials. Please try again."
+                        )
                 except Exception:
                     error = "Unable to connect to the server. Please try again later."
 
-        # ── USER LOGIN ───────────────────────────────────────────────────────
+        # ── USER LOGIN ────────────────────────────────────────────────────────
         else:
             try:
                 r = requests.post(
@@ -127,11 +138,13 @@ def login():
                 if r.status_code == 200:
                     data = r.json()
                     session["username"] = data.get("username", username)
-                    session["role"]     = data.get("role", "user")
-                    session["token"]    = data.get("token")
+                    session["role"] = data.get("role", "user")
+                    session["token"] = data.get("token")
                     return redirect(url_for("dashboard"))
                 else:
-                    error = r.json().get("detail", "Invalid credentials. Please try again.")
+                    error = r.json().get(
+                        "detail", "Invalid credentials. Please try again."
+                    )
             except Exception:
                 error = "Unable to connect to the server. Please try again later."
 
@@ -146,7 +159,7 @@ def signup():
     success = None
     if request.method == "POST":
         username = request.form.get("username", "").strip()
-        email    = request.form.get("email", "").strip()
+        email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
         if not username or not email or not password:
             error = "All fields are required."
@@ -170,6 +183,125 @@ def signup():
     return render_template("signup.html", error=error, success=success)
 
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if "username" in session:
+        return redirect(url_for("dashboard"))
+
+    show_otp = False
+    show_newpw = False
+    show_success = False
+    submitted_email = None
+    submitted_otp = None
+    error = None
+
+    if request.method == "POST":
+        step = request.form.get("step", "email")
+
+        # ── STEP 1: Send OTP ──────────────────────────────────────────────────
+        if step == "email":
+            email = request.form.get("email", "").strip()
+            submitted_email = email
+
+            if not email:
+                error = "Please enter your email address."
+            else:
+                otp = _generate_otp()
+                _otp_store[email] = {
+                    "otp": otp,
+                    "expires": datetime.utcnow() + timedelta(minutes=10),
+                }
+                try:
+                    r = requests.post(
+                        f"{API_BASE}/auth/send-otp",
+                        json={"email": email, "otp": otp},
+                        headers=api_headers(),
+                        timeout=10,
+                    )
+                    if r.status_code != 200:
+                        print(f"[DEV] OTP for {email}: {otp}")
+                except Exception:
+                    print(f"[DEV] OTP for {email}: {otp}")
+
+                show_otp = True
+
+        # ── STEP 2: Verify OTP ────────────────────────────────────────────────
+        elif step == "otp":
+            email = request.form.get("email", "").strip()
+            otp = request.form.get("otp", "").strip()
+            submitted_email = email
+            submitted_otp = otp
+
+            record = _otp_store.get(email)
+            if not record:
+                error = "Session expired. Please request a new code."
+                submitted_email = None
+            elif datetime.utcnow() > record["expires"]:
+                _otp_store.pop(email, None)
+                error = "Code expired. Please request a new one."
+                submitted_email = None
+            elif record["otp"] != otp:
+                error = "Invalid code. Please try again."
+                show_otp = True
+            else:
+                show_newpw = True
+
+        # ── STEP 3: Reset Password ────────────────────────────────────────────
+        elif step == "reset":
+            email = request.form.get("email", "").strip()
+            otp = request.form.get("otp", "").strip()
+            new_password = request.form.get("new_password", "").strip()
+            confirm_pw = request.form.get("confirm_password", "").strip()
+
+            if new_password != confirm_pw:
+                error = "Passwords do not match."
+                show_newpw = True
+                submitted_email = email
+                submitted_otp = otp
+            elif len(new_password) < 6:
+                error = "Password must be at least 6 characters."
+                show_newpw = True
+                submitted_email = email
+                submitted_otp = otp
+            else:
+                try:
+                    r = requests.post(
+                        f"{API_BASE}/auth/reset-password",
+                        json={
+                            "email": email,
+                            "otp": otp,
+                            "new_password": new_password,
+                        },
+                        headers=api_headers(),
+                        timeout=15,
+                    )
+                    if r.status_code == 200:
+                        _otp_store.pop(email, None)
+                        show_success = True
+                    else:
+                        error = r.json().get(
+                            "detail", "Password reset failed. Please try again."
+                        )
+                        show_newpw = True
+                        submitted_email = email
+                        submitted_otp = otp
+                except Exception:
+                    error = "Unable to connect to the server. Please try again later."
+                    show_newpw = True
+                    submitted_email = email
+                    submitted_otp = otp
+
+    return render_template(
+        "forgot_password.html",
+        error=error,
+        show_otp=show_otp,
+        show_newpw=show_newpw,
+        show_success=show_success,
+        submitted_email=submitted_email,
+        submitted_otp=submitted_otp,
+    )
+
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -184,8 +316,8 @@ def profile():
     error = None
     success = None
     if request.method == "POST":
-        old_password     = request.form.get("old_password", "").strip()
-        new_password     = request.form.get("new_password", "").strip()
+        old_password = request.form.get("old_password", "").strip()
+        new_password = request.form.get("new_password", "").strip()
         confirm_password = request.form.get("confirm_password", "").strip()
         if not old_password or not new_password or not confirm_password:
             error = "All fields are required."
@@ -198,7 +330,7 @@ def profile():
                 r = requests.post(
                     f"{API_BASE}/auth/change-password",
                     json={
-                        "username":     session["username"],
+                        "username": session["username"],
                         "old_password": old_password,
                         "new_password": new_password,
                     },
@@ -226,14 +358,14 @@ def dashboard():
         return check
     try:
         r = requests.get(f"{API_BASE}/invoices", timeout=5)
-        data     = r.json()
+        data = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
-    total  = len(invoices)
-    high   = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
+    total = len(invoices)
+    high = len([i for i in invoices if str(i.get("risk", "")).lower() == "high"])
     medium = len([i for i in invoices if str(i.get("risk", "")).lower() == "medium"])
-    low    = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
+    low = len([i for i in invoices if str(i.get("risk", "")).lower() == "low"])
     return render_template(
         "dashboard.html",
         total=total,
@@ -251,8 +383,8 @@ def invoices():
     if check:
         return check
     try:
-        r        = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
-        data     = r.json()
+        r = requests.get(f"{API_BASE}/invoices?limit=100", timeout=5)
+        data = r.json()
         invoices = data.get("data", [])
     except Exception:
         invoices = []
@@ -305,14 +437,16 @@ def upload():
                         timeout=30,
                     )
                     if r.status_code == 200:
-                        data    = r.json()
+                        data = r.json()
                         message = (
                             f"PDF '{file.filename}' uploaded and converted successfully! "
                             f"Saved as '{data.get('filename')}'. Ready for batch processing."
                         )
                         success = True
                     else:
-                        message = f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        message = (
+                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        )
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
             elif filename.endswith(".txt"):
@@ -327,7 +461,9 @@ def upload():
                         message = f"'{file.filename}' uploaded successfully! Ready for batch processing."
                         success = True
                     else:
-                        message = f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        message = (
+                            f"Upload failed: {r.json().get('detail', 'Unknown error')}"
+                        )
                 except Exception as e:
                     message = f"Could not connect to API: {str(e)}"
             else:
@@ -349,7 +485,9 @@ def batch():
     message = None
     if request.method == "POST":
         try:
-            r       = requests.post(f"{API_BASE}/run-batch/", headers=api_headers(), timeout=30)
+            r = requests.post(
+                f"{API_BASE}/run-batch/", headers=api_headers(), timeout=30
+            )
             message = r.json()
         except Exception as e:
             message = {"status": "error", "detail": str(e)}
@@ -367,7 +505,7 @@ def audit():
     if check:
         return check
     try:
-        r    = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
+        r = requests.get(f"{API_BASE}/audit", headers=api_headers(), timeout=5)
         data = r.json()
         logs = data.get("data", [])
     except Exception:
@@ -386,7 +524,7 @@ def admin_users():
     if check:
         return check
     try:
-        r     = requests.get(f"{API_BASE}/admin/users", headers=api_headers(), timeout=10)
+        r = requests.get(f"{API_BASE}/admin/users", headers=api_headers(), timeout=10)
         users = r.json().get("users", [])
     except Exception:
         users = []
