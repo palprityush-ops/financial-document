@@ -4,53 +4,121 @@
 {% block content %}
 <div class="page-header fade-up fade-up-1">
   <h1>// INVOICE EXPLORER</h1>
-  <p>Browse and filter all processed invoice records</p>
+  <p>Browse, filter and export all processed invoice records</p>
 </div>
 
 <!-- ── FILTERS ── -->
 <div class="card mb-4 fade-up fade-up-2">
-  <div class="p-4" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+  <div class="p-4">
+    <!-- ROW 1: Search + Risk + Clear -->
+    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
 
-    <div style="flex:1; min-width:180px;">
-      <label class="ev-label">Search</label>
-      <input type="text" class="ev-input" id="searchInput" placeholder="Bill no, file name..." oninput="filterTable()"/>
+      <div style="flex:2; min-width:200px;">
+        <label class="ev-label">
+          <i class="bi bi-search" style="margin-right:4px;"></i>Search
+        </label>
+        <div style="position:relative;">
+          <input type="text" class="ev-input" id="searchInput"
+                 placeholder="Bill no, file name, date..."
+                 oninput="filterTable()" style="padding-left:14px !important;">
+          <span id="searchClear" onclick="clearSearch()"
+                style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%);
+                       cursor:pointer; color:var(--muted); font-size:0.8rem;">
+            <i class="bi bi-x-circle-fill"></i>
+          </span>
+        </div>
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="ev-label">Risk Level</label>
+        <select class="ev-input" id="riskFilter" onchange="filterTable()">
+          <option value="">All Risks</option>
+          <option value="high">🔴 High</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="low">🟢 Low</option>
+        </select>
+      </div>
+
+      <div style="min-width:130px;">
+        <label class="ev-label">Sort By</label>
+        <select class="ev-input" id="sortBy" onchange="sortTable()">
+          <option value="">Default</option>
+          <option value="total-asc">Amount ↑</option>
+          <option value="total-desc">Amount ↓</option>
+          <option value="date-asc">Date ↑</option>
+          <option value="date-desc">Date ↓</option>
+          <option value="risk-high">Risk: High First</option>
+          <option value="risk-low">Risk: Low First</option>
+          <option value="conf-asc">Confidence ↑</option>
+          <option value="conf-desc">Confidence ↓</option>
+        </select>
+      </div>
+
+      <button class="btn-ev-outline" onclick="clearFilters()"
+              style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+        <i class="bi bi-x-circle"></i> Clear All
+      </button>
     </div>
 
-    <div style="min-width:140px;">
-      <label class="ev-label">Risk Level</label>
-      <select class="ev-input" id="riskFilter" onchange="filterTable()">
-        <option value="">All Risks</option>
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-      </select>
+    <!-- ROW 2: Amount range + Date range -->
+    <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+
+      <div style="min-width:130px;">
+        <label class="ev-label">Min Amount (₹)</label>
+        <input type="number" class="ev-input" id="minAmount"
+               placeholder="0" min="0" oninput="filterTable()">
+      </div>
+
+      <div style="min-width:130px;">
+        <label class="ev-label">Max Amount (₹)</label>
+        <input type="number" class="ev-input" id="maxAmount"
+               placeholder="Any" min="0" oninput="filterTable()">
+      </div>
+
+      <div style="min-width:150px;">
+        <label class="ev-label">Date From</label>
+        <input type="date" class="ev-input" id="dateFrom" onchange="filterTable()">
+      </div>
+
+      <div style="min-width:150px;">
+        <label class="ev-label">Date To</label>
+        <input type="date" class="ev-input" id="dateTo" onchange="filterTable()">
+      </div>
+
+      <div style="min-width:130px;">
+        <label class="ev-label">Min Confidence</label>
+        <select class="ev-input" id="confFilter" onchange="filterTable()">
+          <option value="">Any</option>
+          <option value="0.9">90%+</option>
+          <option value="0.8">80%+</option>
+          <option value="0.7">70%+</option>
+          <option value="0.5">50%+</option>
+        </select>
+      </div>
+
     </div>
 
-    <div style="min-width:120px;">
-      <label class="ev-label">Min Amount (₹)</label>
-      <input type="number" class="ev-input" id="minAmount" placeholder="0" min="0" oninput="filterTable()"/>
-    </div>
-
-    <div style="min-width:120px;">
-      <label class="ev-label">Max Amount (₹)</label>
-      <input type="number" class="ev-input" id="maxAmount" placeholder="Any" min="0" oninput="filterTable()"/>
-    </div>
-
-    <button class="btn-ev-outline" onclick="clearFilters()" style="display:inline-flex; align-items:center; gap:6px;">
-      <i class="bi bi-x-circle"></i> Clear
-    </button>
+    <!-- Active filter chips -->
+    <div id="filterChips" style="display:none; margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 </div>
 
 <!-- ── TABLE ── -->
 <div class="card fade-up fade-up-3">
-  <div class="card-header-custom" style="display:flex; justify-content:space-between; align-items:center;">
+  <div class="card-header-custom" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
     <span>Invoice Records</span>
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <span class="mono" id="countLabel" style="color:var(--accent);">{{ invoices|length }} records</span>
       {% if invoices %}
-      <button onclick="exportCSV()" class="btn-ev-outline" style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px;">
-        <i class="bi bi-download"></i> Export CSV
+      <!-- CSV Export -->
+      <button onclick="exportCSV()" class="btn-ev-outline"
+              style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px;">
+        <i class="bi bi-filetype-csv"></i> CSV
+      </button>
+      <!-- PDF Export -->
+      <button onclick="exportPDF()" class="btn-ev-outline"
+              style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px; border-color:rgba(224,82,82,0.4); color:var(--high);">
+        <i class="bi bi-filetype-pdf"></i> PDF
       </button>
       {% endif %}
     </div>
@@ -61,27 +129,28 @@
     <table class="ev-table" id="invoiceTable">
       <thead>
         <tr>
-          <th>Source File</th>
-          <th>Bill No.</th>
-          <th>Date</th>
-          <th>Subtotal</th>
+          <th onclick="quickSort('source')"  style="cursor:pointer; user-select:none;">Source File <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('bill')"    style="cursor:pointer; user-select:none;">Bill No. <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('date')"    style="cursor:pointer; user-select:none;">Date <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('subtotal')"style="cursor:pointer; user-select:none;">Subtotal <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
           <th>Tax</th>
-          <th>Grand Total</th>
-          <th>Confidence</th>
-          <th>Risk</th>
+          <th onclick="quickSort('total')"   style="cursor:pointer; user-select:none;">Grand Total <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('conf')"    style="cursor:pointer; user-select:none;">Confidence <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('risk')"    style="cursor:pointer; user-select:none;">Risk <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
           {% if role == 'admin' %}<th style="width:60px;"></th>{% endif %}
         </tr>
       </thead>
       <tbody id="tableBody">
         {% for inv in invoices %}
-        <tr class="table-row" data-risk="{{ inv.risk|lower }}"
+        <tr class="table-row"
+            data-risk="{{ inv.risk|lower }}"
             data-source="{{ inv.source_file or '' }}"
             data-bill="{{ inv.bill_number or '' }}"
             data-date="{{ inv.invoice_date or '' }}"
-            data-subtotal="{{ inv.subtotal or '' }}"
-            data-tax="{{ inv.tax_amount or '' }}"
+            data-subtotal="{{ inv.subtotal or 0 }}"
+            data-tax="{{ inv.tax_amount or 0 }}"
             data-total="{{ inv.grand_total or 0 }}"
-            data-conf="{{ inv.confidence or '' }}"
+            data-conf="{{ inv.confidence or 0 }}"
             data-riskval="{{ inv.risk or '' }}">
           <td>
             <span class="mono" style="color:var(--muted); font-size:0.78rem;">
@@ -115,12 +184,12 @@
           </td>
           {% if role == 'admin' %}
           <td>
-            <button
-              onclick="confirmDelete({{ inv.id }}, '{{ inv.source_file or 'this invoice' }}')"
-              title="Delete invoice"
-              style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px 6px; border-radius:6px; transition:all 0.15s;"
-              onmouseover="this.style.color='var(--high)'; this.style.background='rgba(224,82,82,0.1)'"
-              onmouseout="this.style.color='var(--muted)'; this.style.background='none'">
+            <button onclick="confirmDelete({{ inv.id }}, '{{ inv.source_file or 'this invoice' }}')"
+                    title="Delete invoice"
+                    style="background:none; border:none; cursor:pointer; color:var(--muted);
+                           padding:4px 6px; border-radius:6px; transition:all 0.15s;"
+                    onmouseover="this.style.color='var(--high)'; this.style.background='rgba(224,82,82,0.1)'"
+                    onmouseout="this.style.color='var(--muted)'; this.style.background='none'">
               <i class="bi bi-trash3" style="font-size:0.9rem;"></i>
             </button>
           </td>
@@ -129,6 +198,16 @@
         {% endfor %}
       </tbody>
     </table>
+
+    <!-- No results message -->
+    <div id="noResults" style="display:none; padding:40px; text-align:center; color:var(--muted);">
+      <i class="bi bi-funnel" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
+      <p style="font-size:0.85rem;">No invoices match your filters.</p>
+      <button onclick="clearFilters()" class="btn-ev-outline" style="margin-top:12px; font-size:0.78rem;">
+        Clear Filters
+      </button>
+    </div>
+
     {% else %}
     <div style="padding:60px; text-align:center; color:var(--muted);">
       <i class="bi bi-inbox" style="font-size:2.5rem; display:block; margin-bottom:12px;"></i>
@@ -140,42 +219,71 @@
     {% endif %}
   </div>
 </div>
+
+<!-- PDF Export CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
   const totalRecords = {{ invoices|length }};
+  var sortState = {};
 
+  // ── FILTER ────────────────────────────────────────────────────────────────
   function filterTable() {
     var search  = document.getElementById('searchInput').value.toLowerCase().trim();
     var risk    = document.getElementById('riskFilter').value.toLowerCase();
     var minAmt  = parseFloat(document.getElementById('minAmount').value) || 0;
     var maxAmt  = parseFloat(document.getElementById('maxAmount').value) || Infinity;
+    var dateFrom= document.getElementById('dateFrom').value;
+    var dateTo  = document.getElementById('dateTo').value;
+    var minConf = parseFloat(document.getElementById('confFilter').value) || 0;
     var rows    = document.querySelectorAll('#tableBody .table-row');
     var visible = 0;
+
+    // Search clear button
+    document.getElementById('searchClear').style.display = search ? 'block' : 'none';
 
     rows.forEach(function(row) {
       var text      = row.textContent.toLowerCase();
       var rowRisk   = row.getAttribute('data-risk');
       var rowTotal  = parseFloat(row.getAttribute('data-total')) || 0;
+      var rowConf   = parseFloat(row.getAttribute('data-conf')) || 0;
+      var rowDate   = row.getAttribute('data-date') || '';
 
       var matchSearch = !search || text.includes(search);
       var matchRisk   = !risk   || rowRisk === risk;
       var matchAmount = rowTotal >= minAmt && rowTotal <= maxAmt;
+      var matchConf   = rowConf >= minConf;
+      var matchDateFrom = !dateFrom || rowDate >= dateFrom;
+      var matchDateTo   = !dateTo   || rowDate <= dateTo;
 
-      if (matchSearch && matchRisk && matchAmount) {
-        row.style.display = '';
-        visible++;
+      if (matchSearch && matchRisk && matchAmount && matchConf && matchDateFrom && matchDateTo) {
+        row.style.display = ''; visible++;
       } else {
         row.style.display = 'none';
       }
     });
 
+    // Count label
     var label = document.getElementById('countLabel');
-    var anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity;
+    var anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity || dateFrom || dateTo || minConf > 0;
     label.textContent = anyFilter
       ? visible + ' of ' + totalRecords + ' records'
       : totalRecords + ' records';
+
+    // No results
+    var noRes = document.getElementById('noResults');
+    if (noRes) noRes.style.display = (visible === 0 && totalRecords > 0) ? 'block' : 'none';
+
+    updateChips();
+  }
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    filterTable();
   }
 
   function clearFilters() {
@@ -183,13 +291,93 @@
     document.getElementById('riskFilter').value  = '';
     document.getElementById('minAmount').value   = '';
     document.getElementById('maxAmount').value   = '';
+    document.getElementById('dateFrom').value    = '';
+    document.getElementById('dateTo').value      = '';
+    document.getElementById('confFilter').value  = '';
+    document.getElementById('sortBy').value      = '';
+    document.getElementById('searchClear').style.display = 'none';
     filterTable();
-    showToast('Filters cleared.', 'info');
+    if (typeof showToast === 'function') showToast('All filters cleared.', 'info');
   }
 
+  // ── FILTER CHIPS ──────────────────────────────────────────────────────────
+  function updateChips() {
+    var chips = document.getElementById('filterChips');
+    var items = [];
+    var risk = document.getElementById('riskFilter').value;
+    var minAmt = document.getElementById('minAmount').value;
+    var maxAmt = document.getElementById('maxAmount').value;
+    var dateFrom = document.getElementById('dateFrom').value;
+    var dateTo   = document.getElementById('dateTo').value;
+    var conf = document.getElementById('confFilter').value;
+
+    if (risk) items.push({ label: 'Risk: ' + risk.toUpperCase(), clear: function() { document.getElementById('riskFilter').value = ''; filterTable(); }});
+    if (minAmt) items.push({ label: 'Min ₹' + minAmt, clear: function() { document.getElementById('minAmount').value = ''; filterTable(); }});
+    if (maxAmt) items.push({ label: 'Max ₹' + maxAmt, clear: function() { document.getElementById('maxAmount').value = ''; filterTable(); }});
+    if (dateFrom) items.push({ label: 'From ' + dateFrom, clear: function() { document.getElementById('dateFrom').value = ''; filterTable(); }});
+    if (dateTo)   items.push({ label: 'To ' + dateTo,   clear: function() { document.getElementById('dateTo').value = ''; filterTable(); }});
+    if (conf) items.push({ label: 'Conf ≥ ' + (conf*100) + '%', clear: function() { document.getElementById('confFilter').value = ''; filterTable(); }});
+
+    if (items.length === 0) { chips.style.display = 'none'; chips.innerHTML = ''; return; }
+    chips.style.display = 'flex';
+    chips.innerHTML = items.map(function(item, i) {
+      return '<span onclick="chipClear(' + i + ')" style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-family:\'Space Mono\',monospace; font-size:0.6rem; letter-spacing:0.05em; background:rgba(0,255,170,0.08); border:1px solid rgba(0,255,170,0.2); color:var(--accent); cursor:pointer;">'
+        + item.label + ' <i class="bi bi-x" style="font-size:0.7rem;"></i></span>';
+    }).join('');
+    window._chipClears = items.map(function(i) { return i.clear; });
+  }
+
+  function chipClear(i) { window._chipClears[i](); }
+
+  // ── SORT ──────────────────────────────────────────────────────────────────
+  function sortTable() {
+    var val = document.getElementById('sortBy').value;
+    if (!val) return;
+    var parts = val.split('-');
+    var key = parts[0], dir = parts[1];
+    sortRows(key, dir);
+  }
+
+  function quickSort(col) {
+    sortState[col] = sortState[col] === 'asc' ? 'desc' : 'asc';
+    sortRows(col, sortState[col]);
+  }
+
+  var riskOrder = { high: 0, medium: 1, low: 2 };
+
+  function sortRows(key, dir) {
+    var tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+    var rows = Array.from(tbody.querySelectorAll('.table-row'));
+
+    rows.sort(function(a, b) {
+      var av, bv;
+      if (key === 'total' || key === 'subtotal' || key === 'conf') {
+        av = parseFloat(a.getAttribute('data-' + (key === 'subtotal' ? 'subtotal' : key === 'conf' ? 'conf' : 'total'))) || 0;
+        bv = parseFloat(b.getAttribute('data-' + (key === 'subtotal' ? 'subtotal' : key === 'conf' ? 'conf' : 'total'))) || 0;
+        return dir === 'asc' ? av - bv : bv - av;
+      } else if (key === 'date') {
+        av = a.getAttribute('data-date') || '';
+        bv = b.getAttribute('data-date') || '';
+        return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      } else if (key === 'risk') {
+        av = riskOrder[a.getAttribute('data-risk')] !== undefined ? riskOrder[a.getAttribute('data-risk')] : 99;
+        bv = riskOrder[b.getAttribute('data-risk')] !== undefined ? riskOrder[b.getAttribute('data-risk')] : 99;
+        return dir === 'high' || dir === 'asc' ? av - bv : bv - av;
+      } else {
+        av = (a.getAttribute('data-' + key) || '').toLowerCase();
+        bv = (b.getAttribute('data-' + key) || '').toLowerCase();
+        return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+    });
+
+    rows.forEach(function(r) { tbody.appendChild(r); });
+  }
+
+  // ── EXPORT CSV ────────────────────────────────────────────────────────────
   function exportCSV() {
     var rows = document.querySelectorAll('#tableBody .table-row');
-    var headers = ['Source File', 'Bill No', 'Date', 'Subtotal', 'Tax', 'Grand Total', 'Confidence', 'Risk'];
+    var headers = ['Source File','Bill No','Date','Subtotal','Tax','Grand Total','Confidence','Risk'];
     var csvRows = [headers.join(',')];
     var count = 0;
 
@@ -198,7 +386,7 @@
       var cols = [
         row.dataset.source, row.dataset.bill, row.dataset.date,
         row.dataset.subtotal, row.dataset.tax, row.dataset.total,
-        row.dataset.conf, row.dataset.riskval,
+        row.dataset.conf, row.dataset.riskval
       ];
       csvRows.push(cols.map(function(v) { return '"' + (v || '') + '"'; }).join(','));
       count++;
@@ -209,7 +397,71 @@
     var a    = document.createElement('a');
     a.href = url; a.download = 'evidentia_invoices.csv'; a.click();
     URL.revokeObjectURL(url);
-    showToast(count + ' invoice' + (count !== 1 ? 's' : '') + ' exported to CSV.', 'success');
+    if (typeof showToast === 'function') showToast(count + ' invoice(s) exported to CSV.', 'success');
+  }
+
+  // ── EXPORT PDF ────────────────────────────────────────────────────────────
+  function exportPDF() {
+    if (typeof window.jspdf === 'undefined') {
+      alert('PDF library loading... please try again in a moment.'); return;
+    }
+    var { jsPDF } = window.jspdf;
+    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    // Header
+    doc.setFillColor(10, 10, 15);
+    doc.rect(0, 0, 297, 25, 'F');
+    doc.setTextColor(0, 255, 170);
+    doc.setFontSize(14);
+    doc.setFont('courier', 'bold');
+    doc.text('EVIDENTIA — Invoice Export Report', 14, 10);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Generated: ' + new Date().toLocaleString(), 14, 17);
+    doc.text('GLA University | Financial Document Intelligence System', 200, 17);
+
+    // Table data
+    var rows  = document.querySelectorAll('#tableBody .table-row');
+    var body  = [];
+    var count = 0;
+
+    rows.forEach(function(row) {
+      if (row.style.display === 'none') return;
+      body.push([
+        row.dataset.source || '—',
+        row.dataset.bill   || '—',
+        row.dataset.date   || '—',
+        row.dataset.subtotal ? '₹' + parseInt(row.dataset.subtotal).toLocaleString() : '—',
+        row.dataset.tax      ? '₹' + parseInt(row.dataset.tax).toLocaleString()      : '—',
+        row.dataset.total    ? '₹' + parseInt(row.dataset.total).toLocaleString()    : '—',
+        row.dataset.conf ? (parseFloat(row.dataset.conf)*100).toFixed(0) + '%' : '—',
+        (row.dataset.riskval || '—').toUpperCase()
+      ]);
+      count++;
+    });
+
+    doc.autoTable({
+      startY: 28,
+      head: [['Source File','Bill No.','Date','Subtotal','Tax','Grand Total','Confidence','Risk']],
+      body: body,
+      theme: 'grid',
+      styles: { font: 'courier', fontSize: 8, cellPadding: 3, textColor: [220, 220, 220], fillColor: [18, 18, 24] },
+      headStyles: { fillColor: [0, 40, 30], textColor: [0, 255, 170], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [22, 22, 30] },
+      didParseCell: function(data) {
+        if (data.section === 'body' && data.column.index === 7) {
+          var risk = data.cell.raw.toLowerCase();
+          if (risk === 'high')   data.cell.styles.textColor = [224, 82, 82];
+          if (risk === 'medium') data.cell.styles.textColor = [240, 165, 0];
+          if (risk === 'low')    data.cell.styles.textColor = [0, 200, 120];
+        }
+      },
+      foot: [['Total: ' + count + ' records', '', '', '', '', '', '', '']],
+      footStyles: { fillColor: [10, 10, 15], textColor: [100, 100, 100], fontSize: 7 }
+    });
+
+    doc.save('evidentia_invoices_' + new Date().toISOString().slice(0,10) + '.pdf');
+    if (typeof showToast === 'function') showToast(count + ' invoice(s) exported to PDF.', 'success');
   }
 </script>
 {% endblock %}

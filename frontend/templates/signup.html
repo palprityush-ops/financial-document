@@ -1,84 +1,536 @@
 {% extends "layout.html" %}
-{% block title %}Create Account — Evidentia{% endblock %}
+{% block title %}Create Account{% endblock %}
 
 {% block content %}
-<div style="min-height: 70vh; display: flex; align-items: center; justify-content: center;">
-  <div style="width: 100%; max-width: 420px;">
+<style>
+  .signup-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
 
-    <div class="page-header fade-up fade-up-1" style="text-align: center; margin-bottom: 32px;">
-      <h1>// EVIDENTIA</h1>
-      <p>Financial Document Intelligence System</p>
+  .signup-wrapper {
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .brand {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .brand-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0.3rem;
+  }
+
+  .brand-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .signup-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .signup-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .signup-card-header {
+    padding: 1.25rem 1.75rem 0;
+  }
+
+  .signup-card-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .signup-card-desc {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+
+  .signup-body {
+    padding: 1.5rem 1.75rem 1.75rem;
+  }
+
+  /* ── STEP INDICATOR ── */
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 1.75rem;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+
+  .step.active .step-dot {
+    border-color: var(--accent);
+    background: rgba(0,255,170,0.1);
+    color: var(--accent);
+  }
+
+  .step.done .step-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #000;
+  }
+
+  .step-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .step.active .step-label { color: var(--accent); }
+
+  .step-line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin-bottom: 18px;
+  }
+
+  /* ── FORM ── */
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.45rem;
+  }
+
+  .form-label span {
+    font-size: 0.58rem;
+    letter-spacing: 0.05em;
+    text-transform: none;
+    color: rgba(255,255,255,0.2);
+  }
+
+  .form-input-wrap {
+    position: relative;
+  }
+
+  .ev-input {
+    width: 100%;
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    border-radius: 8px !important;
+    padding: 0.75rem 1rem !important;
+    font-family: 'Space Mono', monospace !important;
+    font-size: 0.8rem !important;
+    color: rgba(255,255,255,0.85) !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+  }
+
+  .ev-input:focus {
+    border-color: rgba(0,255,170,0.4) !important;
+    box-shadow: 0 0 0 3px rgba(0,255,170,0.06) !important;
+    outline: none !important;
+  }
+
+  .ev-input.input-error {
+    border-color: rgba(224,82,82,0.5) !important;
+    box-shadow: 0 0 0 3px rgba(224,82,82,0.06) !important;
+  }
+
+  .ev-input.input-success {
+    border-color: rgba(0,255,170,0.4) !important;
+  }
+
+  .input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .input-icon.show { opacity: 1; }
+  .input-icon.ok   { color: var(--accent); }
+  .input-icon.err  { color: var(--high); }
+
+  /* ── PASSWORD STRENGTH ── */
+  .pw-strength {
+    margin-top: 8px;
+    display: none;
+  }
+
+  .pw-strength.show { display: block; }
+
+  .pw-bars {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 5px;
+  }
+
+  .pw-bar {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.08);
+    transition: background 0.3s;
+  }
+
+  .pw-bar.fill-weak   { background: #e05252; }
+  .pw-bar.fill-fair   { background: #f0a500; }
+  .pw-bar.fill-good   { background: #00aaff; }
+  .pw-bar.fill-strong { background: var(--accent); }
+
+  .pw-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+  }
+
+  .pw-label.weak   { color: #e05252; }
+  .pw-label.fair   { color: #f0a500; }
+  .pw-label.good   { color: #00aaff; }
+  .pw-label.strong { color: var(--accent); }
+
+  /* ── REQUIREMENTS ── */
+  .pw-reqs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    margin-top: 8px;
+  }
+
+  .req-item {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s;
+  }
+
+  .req-item.met { color: var(--accent); }
+
+  .req-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .req-item.met .req-dot { background: var(--accent); }
+
+  /* ── TOGGLE PASSWORD ── */
+  .toggle-pw {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 2px;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+  }
+
+  .toggle-pw:hover { color: var(--accent); }
+
+  /* ── ALERT ── */
+  .ev-alert {
+    padding: 0.7rem 1rem;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .ev-alert.error {
+    background: rgba(224,82,82,0.08);
+    border: 1px solid rgba(224,82,82,0.2);
+    color: rgba(255,120,120,0.9);
+  }
+
+  .ev-alert.success {
+    background: rgba(0,255,170,0.06);
+    border: 1px solid rgba(0,255,170,0.2);
+    color: var(--accent);
+  }
+
+  /* ── SUBMIT BTN ── */
+  .btn-signup {
+    width: 100%;
+    padding: 0.85rem;
+    border: 1px solid rgba(0,255,170,0.35);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(0,255,170,0.15), rgba(0,255,170,0.06));
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-signup:hover {
+    background: linear-gradient(135deg, rgba(0,255,170,0.25), rgba(0,255,170,0.12));
+    box-shadow: 0 0 20px rgba(0,255,170,0.12);
+  }
+
+  .btn-signup:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .signup-footer {
+    text-align: center;
+    margin-top: 1.25rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  .signup-footer a {
+    color: var(--accent);
+    text-decoration: none;
+    margin-left: 4px;
+  }
+</style>
+
+<div class="signup-page">
+  <div class="signup-wrapper">
+
+    <!-- BRAND -->
+    <div class="brand fade-up fade-up-1">
+      <div class="brand-logo">// EVIDENTIA</div>
+      <div class="brand-sub">Financial Document Intelligence System</div>
     </div>
 
-    <div class="card fade-up fade-up-2">
-      <div class="card-header-custom" style="display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-person-plus"></i> CREATE ACCOUNT
-      </div>
-      <div class="p-4">
+    <!-- CARD -->
+    <div class="signup-card fade-up fade-up-2">
 
+      <div class="signup-card-header">
+        <div class="signup-card-title">// CREATE ACCOUNT</div>
+        <div class="signup-card-desc">Register to access the financial intelligence system</div>
+      </div>
+
+      <div class="signup-body">
+
+        <!-- STEP INDICATOR -->
+        <div class="steps">
+          <div class="step active" id="step1">
+            <div class="step-dot">01</div>
+            <div class="step-label">Identity</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" id="step2">
+            <div class="step-dot">02</div>
+            <div class="step-label">Security</div>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" id="step3">
+            <div class="step-dot">03</div>
+            <div class="step-label">Confirm</div>
+          </div>
+        </div>
+
+        <!-- ALERTS -->
         {% if error %}
         <div class="ev-alert error">
-          <i class="bi bi-exclamation-triangle"></i> {{ error }}
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>{{ error }}</span>
         </div>
         {% endif %}
 
         {% if success %}
         <div class="ev-alert success">
-          <i class="bi bi-check-circle"></i> {{ success }}
+          <i class="bi bi-check-circle"></i>
+          <span>{{ success }} <a href="/login" style="color:var(--accent); text-decoration:underline;">Sign in now →</a></span>
         </div>
         {% endif %}
 
-        <form method="POST" action="/signup">
+        <!-- FORM -->
+        <form method="POST" action="/signup" id="signupForm" novalidate>
 
-          <div style="margin-bottom: 18px;">
-            <label class="ev-label">Username</label>
-            <input
-              type="text"
-              name="username"
-              required
-              autocomplete="username"
-              placeholder="Choose a username"
-              class="ev-input"
-            />
-          </div>
-
-          <div style="margin-bottom: 18px;">
-            <label class="ev-label">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              required
-              autocomplete="email"
-              placeholder="Enter your email address"
-              class="ev-input"
-            />
-          </div>
-
-          <div style="margin-bottom: 28px;">
-            <label class="ev-label">
-              Password
-              <span style="color: var(--muted); font-size: 0.72rem; margin-left: 6px; font-weight: 400; text-transform: none; letter-spacing: 0;">Minimum 6 characters</span>
+          <!-- USERNAME -->
+          <div class="form-group">
+            <label class="form-label">
+              Username
+              <span>letters, numbers, underscore</span>
             </label>
-            <input
-              type="password"
-              name="password"
-              required
-              minlength="6"
-              autocomplete="new-password"
-              placeholder="Create a password"
-              class="ev-input"
-            />
+            <div class="form-input-wrap">
+              <input
+                type="text"
+                name="username"
+                id="usernameInput"
+                class="ev-input"
+                placeholder="choose_username"
+                autocomplete="username"
+                required
+                oninput="validateUsername(this)"
+              >
+              <span class="input-icon" id="username-icon"><i class="bi bi-check-lg"></i></span>
+            </div>
           </div>
 
-          <button type="submit" class="btn-ev" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 12px; display: flex; align-items: center; gap: 8px;">
-            <i class="bi bi-person-check"></i> Create Account
+          <!-- EMAIL -->
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="form-input-wrap">
+              <input
+                type="email"
+                name="email"
+                id="emailInput"
+                class="ev-input"
+                placeholder="your@email.com"
+                autocomplete="email"
+                required
+                oninput="validateEmail(this)"
+              >
+              <span class="input-icon" id="email-icon"><i class="bi bi-check-lg"></i></span>
+            </div>
+          </div>
+
+          <!-- PASSWORD -->
+          <div class="form-group">
+            <label class="form-label">
+              Password
+              <span>min 6 characters</span>
+            </label>
+            <div class="form-input-wrap">
+              <input
+                type="password"
+                name="password"
+                id="passwordInput"
+                class="ev-input"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+                style="padding-right: 40px !important;"
+                oninput="checkStrength(this.value)"
+              >
+              <button type="button" class="toggle-pw" onclick="togglePw('passwordInput', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+
+            <!-- STRENGTH METER -->
+            <div class="pw-strength" id="pwStrength">
+              <div class="pw-bars">
+                <div class="pw-bar" id="bar1"></div>
+                <div class="pw-bar" id="bar2"></div>
+                <div class="pw-bar" id="bar3"></div>
+                <div class="pw-bar" id="bar4"></div>
+              </div>
+              <div class="pw-label" id="pwLabel">Weak</div>
+              <div class="pw-reqs">
+                <div class="req-item" id="req-len"><div class="req-dot"></div>6+ characters</div>
+                <div class="req-item" id="req-upper"><div class="req-dot"></div>Uppercase letter</div>
+                <div class="req-item" id="req-num"><div class="req-dot"></div>Number</div>
+                <div class="req-item" id="req-special"><div class="req-dot"></div>Special char</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONFIRM PASSWORD -->
+          <div class="form-group">
+            <label class="form-label">Confirm Password</label>
+            <div class="form-input-wrap">
+              <input
+                type="password"
+                name="confirm_password"
+                id="confirmInput"
+                class="ev-input"
+                placeholder="••••••••"
+                autocomplete="new-password"
+                required
+                style="padding-right: 40px !important;"
+                oninput="validateConfirm(this)"
+              >
+              <button type="button" class="toggle-pw" onclick="togglePw('confirmInput', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div id="confirmMsg" style="font-family:'Space Mono',monospace; font-size:0.6rem; margin-top:5px; display:none;"></div>
+          </div>
+
+          <button type="submit" class="btn-signup" id="submitBtn">
+            ↳ CREATE ACCOUNT
           </button>
 
         </form>
 
-        <div style="text-align: center; margin-top: 20px; font-size: 0.83rem; color: var(--muted);">
+        <div class="signup-footer">
           Already have an account?
-          <a href="/login" style="color: var(--accent); text-decoration: none; margin-left: 4px;">Sign in</a>
+          <a href="/login">Sign in →</a>
+        </div>
+        <div class="signup-footer" style="margin-top:6px;">
+          <a href="/login?role=admin" style="color:var(--muted); font-size:0.58rem;">Admin portal →</a>
         </div>
 
       </div>
@@ -86,4 +538,148 @@
 
   </div>
 </div>
+
+<script>
+  function validateUsername(input) {
+    var icon = document.getElementById('username-icon');
+    var val = input.value.trim();
+    updateStep();
+    if (val.length >= 3) {
+      input.classList.remove('input-error');
+      input.classList.add('input-success');
+      icon.className = 'input-icon show ok';
+      icon.innerHTML = '<i class="bi bi-check-lg"></i>';
+    } else if (val.length > 0) {
+      input.classList.add('input-error');
+      input.classList.remove('input-success');
+      icon.className = 'input-icon show err';
+      icon.innerHTML = '<i class="bi bi-x-lg"></i>';
+    } else {
+      input.className = 'ev-input';
+      icon.className = 'input-icon';
+    }
+  }
+
+  function validateEmail(input) {
+    var icon = document.getElementById('email-icon');
+    var val = input.value.trim();
+    var ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    updateStep();
+    if (val.length === 0) {
+      input.className = 'ev-input'; icon.className = 'input-icon'; return;
+    }
+    if (ok) {
+      input.classList.remove('input-error'); input.classList.add('input-success');
+      icon.className = 'input-icon show ok'; icon.innerHTML = '<i class="bi bi-check-lg"></i>';
+    } else {
+      input.classList.add('input-error'); input.classList.remove('input-success');
+      icon.className = 'input-icon show err'; icon.innerHTML = '<i class="bi bi-x-lg"></i>';
+    }
+  }
+
+  function checkStrength(val) {
+    var strength = document.getElementById('pwStrength');
+    var bars = [document.getElementById('bar1'), document.getElementById('bar2'),
+                document.getElementById('bar3'), document.getElementById('bar4')];
+    var label = document.getElementById('pwLabel');
+
+    // Requirements
+    var hasLen     = val.length >= 6;
+    var hasUpper   = /[A-Z]/.test(val);
+    var hasNum     = /[0-9]/.test(val);
+    var hasSpecial = /[^A-Za-z0-9]/.test(val);
+
+    toggleReq('req-len',     hasLen);
+    toggleReq('req-upper',   hasUpper);
+    toggleReq('req-num',     hasNum);
+    toggleReq('req-special', hasSpecial);
+
+    if (val.length === 0) { strength.classList.remove('show'); return; }
+    strength.classList.add('show');
+
+    var score = [hasLen, hasUpper, hasNum, hasSpecial].filter(Boolean).length;
+    bars.forEach(function(b) { b.className = 'pw-bar'; });
+
+    if (score === 1) {
+      bars[0].classList.add('fill-weak');
+      label.className = 'pw-label weak'; label.textContent = 'Weak';
+    } else if (score === 2) {
+      bars[0].classList.add('fill-fair'); bars[1].classList.add('fill-fair');
+      label.className = 'pw-label fair'; label.textContent = 'Fair';
+    } else if (score === 3) {
+      bars[0].classList.add('fill-good'); bars[1].classList.add('fill-good'); bars[2].classList.add('fill-good');
+      label.className = 'pw-label good'; label.textContent = 'Good';
+    } else if (score === 4) {
+      bars.forEach(function(b) { b.classList.add('fill-strong'); });
+      label.className = 'pw-label strong'; label.textContent = 'Strong';
+    }
+    validateConfirm(document.getElementById('confirmInput'));
+    updateStep();
+  }
+
+  function toggleReq(id, met) {
+    var el = document.getElementById(id);
+    if (met) el.classList.add('met'); else el.classList.remove('met');
+  }
+
+  function validateConfirm(input) {
+    var pw  = document.getElementById('passwordInput').value;
+    var msg = document.getElementById('confirmMsg');
+    if (input.value.length === 0) {
+      input.className = 'ev-input'; msg.style.display = 'none'; return;
+    }
+    if (input.value === pw) {
+      input.classList.remove('input-error'); input.classList.add('input-success');
+      msg.style.display = 'block'; msg.style.color = 'var(--accent)'; msg.textContent = '✓ Passwords match';
+    } else {
+      input.classList.add('input-error'); input.classList.remove('input-success');
+      msg.style.display = 'block'; msg.style.color = 'var(--high)'; msg.textContent = '✗ Passwords do not match';
+    }
+    updateStep();
+  }
+
+  function togglePw(id, btn) {
+    var input = document.getElementById(id);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.innerHTML = '<i class="bi bi-eye-slash"></i>';
+    } else {
+      input.type = 'password';
+      btn.innerHTML = '<i class="bi bi-eye"></i>';
+    }
+  }
+
+  function updateStep() {
+    var u = document.getElementById('usernameInput').value.trim().length >= 3;
+    var e = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('emailInput').value);
+    var p = document.getElementById('passwordInput').value.length >= 6;
+    var c = document.getElementById('confirmInput').value === document.getElementById('passwordInput').value
+            && document.getElementById('confirmInput').value.length > 0;
+
+    setStep(1, u && e, u && e);
+    setStep(2, p, p && c);
+    setStep(3, p && c, false);
+  }
+
+  function setStep(n, active, done) {
+    var el = document.getElementById('step' + n);
+    el.classList.remove('active', 'done');
+    if (done) el.classList.add('done');
+    else if (active) el.classList.add('active');
+  }
+
+  // Prevent submit if passwords don't match
+  document.getElementById('signupForm').addEventListener('submit', function(e) {
+    var pw  = document.getElementById('passwordInput').value;
+    var cpw = document.getElementById('confirmInput').value;
+    if (pw !== cpw) {
+      e.preventDefault();
+      var msg = document.getElementById('confirmMsg');
+      msg.style.display = 'block';
+      msg.style.color = 'var(--high)';
+      msg.textContent = '✗ Passwords do not match';
+    }
+  });
+</script>
+
 {% endblock %}
