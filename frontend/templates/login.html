@@ -172,13 +172,13 @@
     </div>
 
     <div class="role-toggle">
-      <button class="role-btn active-admin" id="btn-admin" onclick="setRole('admin')">
+      <button class="role-btn active-admin" id="btn-admin" type="button" onclick="setRole('admin')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 1l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
         </svg>
         Admin
       </button>
-      <button class="role-btn" id="btn-user" onclick="setRole('user')">
+      <button class="role-btn" id="btn-user" type="button" onclick="setRole('user')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="8" r="4"/>
           <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
@@ -217,7 +217,7 @@
         <div class="form-group">
           <label class="form-label">Username</label>
           <div class="input-wrapper">
-            <input type="text" name="username" class="form-input ev-input" placeholder="enter username" autocomplete="username" required>
+            <input type="text" name="username" class="form-input ev-input" placeholder="enter username" autocomplete="username" value="{{ username_value or '' }}" required>
             <span class="role-badge-input" id="role-badge">Admin</span>
           </div>
         </div>
@@ -295,7 +295,8 @@
   }
 
   const params = new URLSearchParams(window.location.search);
-  if (params.get('role') === 'user') setRole('user');
+  const initialRole = (params.get('role') || '{{ selected_role|default("admin") }}').toLowerCase();
+  setRole(initialRole === 'user' ? 'user' : 'admin');
 </script>
 
 {% endblock %}

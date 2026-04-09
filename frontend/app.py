@@ -90,11 +90,18 @@ def login():
         return redirect(url_for("dashboard"))
 
     error = None
+    selected_role = request.args.get("role", "admin").strip().lower()
+    if selected_role not in {"admin", "user"}:
+        selected_role = "admin"
+    username = ""
 
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
-        role = request.form.get("role", "user")
+        role = request.form.get("role", selected_role).strip().lower()
+        if role not in {"admin", "user"}:
+            role = "user"
+        selected_role = role
         admin_key = request.form.get("admin_key", "").strip()
 
         if not username or not password:
@@ -148,7 +155,12 @@ def login():
             except Exception:
                 error = "Unable to connect to the server. Please try again later."
 
-    return render_template("login.html", error=error)
+    return render_template(
+        "login.html",
+        error=error,
+        selected_role=selected_role,
+        username_value=username,
+    )
 
 
 @app.route("/signup", methods=["GET", "POST"])
