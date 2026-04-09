@@ -122,6 +122,13 @@ Each processed document is stored with structured metadata and scoring outputs f
 - Black (code formatting)
 - Pytest (9 automated tests)
 
+### Deployment Resilience (Render DNS/Clone Failures)
+- Docker image publishing to GHCR via GitHub Actions (`.github/workflows/publish-images.yml`)
+- Backend image build file: `Dockerfile.backend`
+- Frontend image build file: `Dockerfile.frontend`
+- Render blueprint file: `render.yaml`
+- Recommended Render deploy mode: **Deploy from existing image**
+
 ---
 
 ## Project Structure
@@ -217,6 +224,28 @@ Frontend available at:
 ```
 http://127.0.0.1:5000
 ```
+
+---
+
+## Render Setup (Avoid Git Clone Build Failures)
+
+If Render fails with errors like "Could not resolve host: github.com" during clone, deploy from prebuilt images instead of source builds.
+
+1. Push to `main`.
+2. Wait for the GitHub Actions workflow `Publish Render Images` to complete.
+3. In Render, create/update two web services using existing images:
+      - `ghcr.io/<your-org-or-user>/financial-document-backend:latest`
+      - `ghcr.io/<your-org-or-user>/financial-document-frontend:latest`
+   You can also use the blueprint in `render.yaml`.
+4. Use these settings:
+      - Backend start command is already in image (`uvicorn api.main:app ...`)
+      - Frontend start command is already in image (`gunicorn app:app ...`)
+      - Health check path for both services: `/healthz`
+5. Set environment variables in Render:
+      - Frontend: `API_BASE`, `API_KEY`, `SECRET_KEY`, `ADMIN_SECRET_KEY`
+      - Backend: `API_KEY` (if customized), JWT/secret values as needed
+
+This bypasses repository clone/build failures on Render builder nodes.
 
 ---
 

@@ -130,6 +130,11 @@ def health_check():
     return {"status": "ok", "message": "Financial Document Analysis API running"}
 
 
+@app.get("/healthz", summary="Liveness probe", tags=["System"])
+def liveness_probe():
+    return {"status": "ok"}
+
+
 @app.post(
     "/auth/signup",
     summary="Create a new user account",

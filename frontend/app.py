@@ -42,6 +42,11 @@ def _generate_otp():
     return "".join(random.choices("0123456789", k=6))
 
 
+@app.route("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return (
