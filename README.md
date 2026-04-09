@@ -128,6 +128,7 @@ Each processed document is stored with structured metadata and scoring outputs f
 - Frontend image build file: `Dockerfile.frontend`
 - Render blueprint file: `render.yaml`
 - Recommended Render deploy mode: **Deploy from existing image**
+- Optional auto-redeploy trigger via Render deploy hooks (`RENDER_DEPLOY_HOOK_BACKEND`, `RENDER_DEPLOY_HOOK_FRONTEND`)
 
 ---
 
@@ -241,9 +242,12 @@ If Render fails with errors like "Could not resolve host: github.com" during clo
       - Backend start command is already in image (`uvicorn api.main:app ...`)
       - Frontend start command is already in image (`gunicorn app:app ...`)
       - Health check path for both services: `/healthz`
+      - Add a Render registry credential named `ghcr-read` (or update `render.yaml` to your credential name)
 5. Set environment variables in Render:
       - Frontend: `API_BASE`, `API_KEY`, `SECRET_KEY`, `ADMIN_SECRET_KEY`
       - Backend: `API_KEY` (if customized), JWT/secret values as needed
+
+Important: image-backed services do not auto-deploy on tag updates by default. Use Manual Deploy, deploy hooks, or set deploy automation in your workflow.
 
 This bypasses repository clone/build failures on Render builder nodes.
 
