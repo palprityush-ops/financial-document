@@ -188,7 +188,7 @@
                     title="Delete invoice"
                     style="background:none; border:none; cursor:pointer; color:var(--muted);
                            padding:4px 6px; border-radius:6px; transition:all 0.15s;"
-                    onmouseover="this.style.color='var(--high)'; this.style.background='rgba(224,82,82,0.1)'"
+                    onmouseover="this.style.color='var(--high)'; this.style.background='rgba(255,77,77,0.12)'"
                     onmouseout="this.style.color='var(--muted)'; this.style.background='none'">
               <i class="bi bi-trash3" style="font-size:0.9rem;"></i>
             </button>
@@ -321,7 +321,7 @@
     if (items.length === 0) { chips.style.display = 'none'; chips.innerHTML = ''; return; }
     chips.style.display = 'flex';
     chips.innerHTML = items.map(function(item, i) {
-      return '<span onclick="chipClear(' + i + ')" style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-family:\'Space Mono\',monospace; font-size:0.6rem; letter-spacing:0.05em; background:rgba(0,255,170,0.08); border:1px solid rgba(0,255,170,0.2); color:var(--accent); cursor:pointer;">'
+      return '<span onclick="chipClear(' + i + ')" style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-family:\'Space Mono\',monospace; font-size:0.6rem; letter-spacing:0.05em; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.35); color:var(--accent2); cursor:pointer;">'
         + item.label + ' <i class="bi bi-x" style="font-size:0.7rem;"></i></span>';
     }).join('');
     window._chipClears = items.map(function(i) { return i.clear; });
