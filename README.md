@@ -7,7 +7,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square)
 ![Flask](https://img.shields.io/badge/Flask-Frontend-lightgrey?style=flat-square)
 ![CI](https://github.com/palprityush-ops/financial-document/actions/workflows/ci.yml/badge.svg)
-![Tests](https://img.shields.io/badge/Tests-9%20Passing-brightgreen?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-30%20Passing-brightgreen?style=flat-square)
 ![Security](https://img.shields.io/badge/Security-79%2F100-yellow?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square)
 
