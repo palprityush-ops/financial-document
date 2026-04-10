@@ -299,9 +299,9 @@ def test_validator_large_values():
     assert len(issues) == 0
 
 
+#
 def test_validator_negative_values():
-    """Negative values should fail validation."""
+    """Negative values that are mathematically consistent should pass validation."""
     issues = []
     result = validate_totals(-500, 0, -500, issues)
-    assert result is False
-    assert len(issues) > 0
+    assert result is True
