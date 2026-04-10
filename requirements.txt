@@ -67,4 +67,4 @@ tzdata==2025.3
 urllib3==2.6.3
 uvicorn==0.40.0
 watchdog==6.0.0
-Flask-WTF==1.2.1
+echo "Flask-WTF==1.2.1"
