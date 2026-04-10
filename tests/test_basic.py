@@ -231,9 +231,9 @@ def test_extractor_confidence_range():
     ]
     for text in texts:
         result = extract_invoice_data(text)
-        assert 0.0 <= result["confidence"] <= 1.0, (
-            f"Confidence out of range for: {text!r}"
-        )
+        assert (
+            0.0 <= result["confidence"] <= 1.0
+        ), f"Confidence out of range for: {text!r}"
 
 
 def test_extractor_issues_is_list():
