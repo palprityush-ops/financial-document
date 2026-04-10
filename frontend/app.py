@@ -4,10 +4,14 @@ from datetime import datetime, timedelta
 
 import requests
 from flask import Flask, abort, redirect, render_template, request, session, url_for
+from flask_wtf.csrf import CSRFProtect, CSRFError
 
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY", "evidentia_flask_secret_2024")
+
+# ── CSRF PROTECTION ───────────────────────────────────────────────────────────
+csrf = CSRFProtect(app)
 
 API_BASE = os.environ.get("API_BASE", "https://financial-document-2.onrender.com")
 API_KEY = os.environ.get("API_KEY", "secret-admin-key")
@@ -16,7 +20,6 @@ API_KEY = os.environ.get("API_KEY", "secret-admin-key")
 ADMIN_SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "evidentia_admin_2024")
 
 # In-memory OTP store — use Redis in production
-# Format: { email: { otp: "123456", expires: datetime } }
 _otp_store = {}
 
 
@@ -47,6 +50,7 @@ def healthz():
     return {"status": "ok"}
 
 
+# ── ERROR HANDLERS ────────────────────────────────────────────────────────────
 @app.errorhandler(404)
 def page_not_found(e):
     return (
@@ -89,6 +93,21 @@ def forbidden(e):
     )
 
 
+@app.errorhandler(CSRFError)
+def csrf_error(e):
+    return (
+        render_template(
+            "error.html",
+            code=400,
+            title="Security Token Expired",
+            message="Your form session expired. Please go back and try again.",
+            username=session.get("username"),
+        ),
+        400,
+    )
+
+
+# ── AUTH ROUTES ───────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "username" in session:
@@ -112,7 +131,6 @@ def login():
         if not username or not password:
             error = "Please enter both username and password."
 
-        # ── ADMIN LOGIN ───────────────────────────────────────────────────────
         elif role == "admin":
             if admin_key != ADMIN_SECRET_KEY:
                 error = "Invalid admin secret key."
@@ -139,7 +157,6 @@ def login():
                 except Exception:
                     error = "Unable to connect to the server. Please try again later."
 
-        # ── USER LOGIN ────────────────────────────────────────────────────────
         else:
             try:
                 r = requests.post(
@@ -215,11 +232,9 @@ def forgot_password():
     if request.method == "POST":
         step = request.form.get("step", "email")
 
-        # ── STEP 1: Send OTP ──────────────────────────────────────────────────
         if step == "email":
             email = request.form.get("email", "").strip()
             submitted_email = email
-
             if not email:
                 error = "Please enter your email address."
             else:
@@ -239,16 +254,13 @@ def forgot_password():
                         print(f"[DEV] OTP for {email}: {otp}")
                 except Exception:
                     print(f"[DEV] OTP for {email}: {otp}")
-
                 show_otp = True
 
-        # ── STEP 2: Verify OTP ────────────────────────────────────────────────
         elif step == "otp":
             email = request.form.get("email", "").strip()
             otp = request.form.get("otp", "").strip()
             submitted_email = email
             submitted_otp = otp
-
             record = _otp_store.get(email)
             if not record:
                 error = "Session expired. Please request a new code."
@@ -263,13 +275,11 @@ def forgot_password():
             else:
                 show_newpw = True
 
-        # ── STEP 3: Reset Password ────────────────────────────────────────────
         elif step == "reset":
             email = request.form.get("email", "").strip()
             otp = request.form.get("otp", "").strip()
             new_password = request.form.get("new_password", "").strip()
             confirm_pw = request.form.get("confirm_password", "").strip()
-
             if new_password != confirm_pw:
                 error = "Passwords do not match."
                 show_newpw = True
@@ -284,11 +294,7 @@ def forgot_password():
                 try:
                     r = requests.post(
                         f"{API_BASE}/auth/reset-password",
-                        json={
-                            "email": email,
-                            "otp": otp,
-                            "new_password": new_password,
-                        },
+                        json={"email": email, "otp": otp, "new_password": new_password},
                         headers=api_headers(),
                         timeout=15,
                     )
@@ -368,6 +374,7 @@ def profile():
     )
 
 
+# ── MAIN ROUTES ───────────────────────────────────────────────────────────────
 @app.route("/")
 def dashboard():
     check = login_required()
@@ -430,8 +437,6 @@ def delete_invoice(invoice_id):
 
 
 # ── ADMIN ONLY ROUTES ─────────────────────────────────────────────────────────
-
-
 @app.route("/upload", methods=["GET", "POST"])
 def upload():
     check = admin_required()
