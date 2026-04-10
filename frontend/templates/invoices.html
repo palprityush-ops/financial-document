@@ -1,22 +1,310 @@
 {% extends "layout.html" %}
 {% block title %}Invoices{% endblock %}
 
+{% block head %}
+<style>
+  /* ── RISK SCORE BAR ── */
+  .risk-score-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 110px;
+  }
+  .risk-score-bar-bg {
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .risk-score-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  .risk-score-bar-fill.high   { background: linear-gradient(90deg,#e05252,#ff6b6b); }
+  .risk-score-bar-fill.medium { background: linear-gradient(90deg,#d4923a,#f0a500); }
+  .risk-score-bar-fill.low    { background: linear-gradient(90deg,#3aad7a,#30d158); }
+
+  .risk-score-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ── EXPLAINABILITY TOOLTIP ── */
+  .explain-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 3px 7px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.72rem;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .explain-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(201,168,76,0.08);
+  }
+
+  /* ── EXPLAIN PANEL (inline expandable) ── */
+  .explain-panel {
+    display: none;
+    margin-top: 0;
+    animation: slideDown 0.2s ease;
+  }
+  .explain-panel.open { display: table-row; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .explain-inner {
+    padding: 14px 20px 16px;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .explain-title {
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    margin-bottom: 12px;
+  }
+
+  .explain-factors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .factor-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.71rem;
+    font-family: var(--font-mono);
+  }
+  .factor-chip.bad  {
+    background: rgba(224,82,82,0.12);
+    border: 1px solid rgba(224,82,82,0.3);
+    color: #ff8080;
+  }
+  .factor-chip.warn {
+    background: rgba(240,165,0,0.12);
+    border: 1px solid rgba(240,165,0,0.3);
+    color: #f0a500;
+  }
+  .factor-chip.good {
+    background: rgba(58,173,122,0.12);
+    border: 1px solid rgba(58,173,122,0.3);
+    color: #3aad7a;
+  }
+
+  .explain-score-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .explain-score-number {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    min-width: 48px;
+  }
+
+  .explain-score-bar-wrap {
+    flex: 1;
+  }
+
+  .explain-score-bar-bg {
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    height: 10px;
+    overflow: hidden;
+  }
+
+  .explain-score-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1s ease;
+  }
+
+  /* ── RISK SUMMARY BANNER ── */
+  .risk-summary-banner {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .rsb-card {
+    flex: 1;
+    min-width: 100px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid;
+    text-align: center;
+  }
+
+  .rsb-card.high   { background: rgba(224,82,82,0.08);  border-color: rgba(224,82,82,0.25); }
+  .rsb-card.medium { background: rgba(212,146,58,0.08); border-color: rgba(212,146,58,0.25); }
+  .rsb-card.low    { background: rgba(58,173,122,0.08); border-color: rgba(58,173,122,0.25); }
+  .rsb-card.total  { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.25); }
+
+  .rsb-num {
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .rsb-card.high   .rsb-num { color: var(--high); }
+  .rsb-card.medium .rsb-num { color: var(--medium); }
+  .rsb-card.low    .rsb-num { color: var(--low); }
+  .rsb-card.total  .rsb-num { color: var(--accent); }
+
+  .rsb-label {
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── PORTFOLIO RISK METER ── */
+  .portfolio-meter {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+
+  .pm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .pm-title {
+    font-size: 0.72rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  .pm-score {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .pm-bar-bg {
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .pm-bar-segments {
+    display: flex;
+    height: 100%;
+    width: 100%;
+  }
+
+  .pm-seg-low    { background: var(--low);    transition: width 1s ease; }
+  .pm-seg-medium { background: var(--medium); transition: width 1s ease; }
+  .pm-seg-high   { background: var(--high);   transition: width 1s ease; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="page-header fade-up fade-up-1">
   <h1>// INVOICE EXPLORER</h1>
-  <p>Browse, filter and export all processed invoice records</p>
+  <p>Browse, filter, and analyze risk scoring for all processed invoices</p>
 </div>
+
+{% if invoices %}
+<!-- ── RISK SUMMARY BANNER ── -->
+{% set total_count  = invoices|length %}
+{% set high_count   = invoices|selectattr('risk','equalto','high')|list|length  + invoices|selectattr('risk','equalto','HIGH')|list|length %}
+{% set medium_count = invoices|selectattr('risk','equalto','medium')|list|length + invoices|selectattr('risk','equalto','MEDIUM')|list|length %}
+{% set low_count    = total_count - high_count - medium_count %}
+
+<div class="risk-summary-banner fade-up fade-up-1">
+  <div class="rsb-card total">
+    <div class="rsb-num">{{ total_count }}</div>
+    <div class="rsb-label">Total</div>
+  </div>
+  <div class="rsb-card high">
+    <div class="rsb-num">{{ high_count }}</div>
+    <div class="rsb-label">High Risk</div>
+  </div>
+  <div class="rsb-card medium">
+    <div class="rsb-num">{{ medium_count }}</div>
+    <div class="rsb-label">Medium Risk</div>
+  </div>
+  <div class="rsb-card low">
+    <div class="rsb-num">{{ low_count }}</div>
+    <div class="rsb-label">Low Risk</div>
+  </div>
+</div>
+
+<!-- ── PORTFOLIO RISK METER ── -->
+{% if total_count > 0 %}
+{% set low_pct    = (low_count    / total_count * 100)|round(1) %}
+{% set medium_pct = (medium_count / total_count * 100)|round(1) %}
+{% set high_pct   = (high_count   / total_count * 100)|round(1) %}
+{% set exposure   = ((high_count * 1.0 + medium_count * 0.5) / total_count * 100)|round(1) %}
+
+<div class="portfolio-meter fade-up fade-up-2">
+  <div class="pm-header">
+    <span class="pm-title"><i class="bi bi-shield-exclamation" style="margin-right:5px;"></i>Portfolio Risk Exposure</span>
+    <span class="pm-score" style="color:{% if exposure > 40 %}var(--high){% elif exposure > 20 %}var(--medium){% else %}var(--low){% endif %};">
+      {{ exposure }}% exposure
+    </span>
+  </div>
+  <div class="pm-bar-bg">
+    <div class="pm-bar-segments">
+      <div class="pm-seg-low"    style="width:{{ low_pct }}%;"></div>
+      <div class="pm-seg-medium" style="width:{{ medium_pct }}%;"></div>
+      <div class="pm-seg-high"   style="width:{{ high_pct }}%;"></div>
+    </div>
+  </div>
+  <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap;">
+    <span style="font-size:0.68rem; color:var(--low);    font-family:var(--font-mono);">■ LOW {{ low_pct }}%</span>
+    <span style="font-size:0.68rem; color:var(--medium); font-family:var(--font-mono);">■ MEDIUM {{ medium_pct }}%</span>
+    <span style="font-size:0.68rem; color:var(--high);   font-family:var(--font-mono);">■ HIGH {{ high_pct }}%</span>
+  </div>
+</div>
+{% endif %}
+{% endif %}
 
 <!-- ── FILTERS ── -->
 <div class="card mb-4 fade-up fade-up-2">
   <div class="p-4">
-    <!-- ROW 1: Search + Risk + Clear -->
     <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:12px;">
-
       <div style="flex:2; min-width:200px;">
-        <label class="ev-label">
-          <i class="bi bi-search" style="margin-right:4px;"></i>Search
-        </label>
+        <label class="ev-label"><i class="bi bi-search" style="margin-right:4px;"></i>Search</label>
         <div style="position:relative;">
           <input type="text" class="ev-input" id="searchInput"
                  placeholder="Bill no, file name, date..."
@@ -28,7 +316,6 @@
           </span>
         </div>
       </div>
-
       <div style="min-width:140px;">
         <label class="ev-label">Risk Level</label>
         <select class="ev-input" id="riskFilter" onchange="filterTable()">
@@ -38,7 +325,6 @@
           <option value="low">🟢 Low</option>
         </select>
       </div>
-
       <div style="min-width:130px;">
         <label class="ev-label">Sort By</label>
         <select class="ev-input" id="sortBy" onchange="sortTable()">
@@ -53,38 +339,28 @@
           <option value="conf-desc">Confidence ↓</option>
         </select>
       </div>
-
       <button class="btn-ev-outline" onclick="clearFilters()"
               style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
         <i class="bi bi-x-circle"></i> Clear All
       </button>
     </div>
-
-    <!-- ROW 2: Amount range + Date range -->
     <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
-
       <div style="min-width:130px;">
         <label class="ev-label">Min Amount (₹)</label>
-        <input type="number" class="ev-input" id="minAmount"
-               placeholder="0" min="0" oninput="filterTable()">
+        <input type="number" class="ev-input" id="minAmount" placeholder="0" min="0" oninput="filterTable()">
       </div>
-
       <div style="min-width:130px;">
         <label class="ev-label">Max Amount (₹)</label>
-        <input type="number" class="ev-input" id="maxAmount"
-               placeholder="Any" min="0" oninput="filterTable()">
+        <input type="number" class="ev-input" id="maxAmount" placeholder="Any" min="0" oninput="filterTable()">
       </div>
-
       <div style="min-width:150px;">
         <label class="ev-label">Date From</label>
         <input type="date" class="ev-input" id="dateFrom" onchange="filterTable()">
       </div>
-
       <div style="min-width:150px;">
         <label class="ev-label">Date To</label>
         <input type="date" class="ev-input" id="dateTo" onchange="filterTable()">
       </div>
-
       <div style="min-width:130px;">
         <label class="ev-label">Min Confidence</label>
         <select class="ev-input" id="confFilter" onchange="filterTable()">
@@ -95,27 +371,22 @@
           <option value="0.5">50%+</option>
         </select>
       </div>
-
     </div>
-
-    <!-- Active filter chips -->
-    <div id="filterChips" style="display:none; margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;"></div>
+    <div id="filterChips" style="display:none; margin-top:10px; flex-wrap:wrap; gap:6px;"></div>
   </div>
 </div>
 
 <!-- ── TABLE ── -->
 <div class="card fade-up fade-up-3">
   <div class="card-header-custom" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-    <span>Invoice Records</span>
+    <span>Invoice Records <span style="font-size:0.7rem; color:var(--muted); font-weight:400; margin-left:6px;">click any row to see risk analysis</span></span>
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
       <span class="mono" id="countLabel" style="color:var(--accent);">{{ invoices|length }} records</span>
       {% if invoices %}
-      <!-- CSV Export -->
       <button onclick="exportCSV()" class="btn-ev-outline"
               style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px;">
         <i class="bi bi-filetype-csv"></i> CSV
       </button>
-      <!-- PDF Export -->
       <button onclick="exportPDF()" class="btn-ev-outline"
               style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; padding:6px 12px; border-color:rgba(224,82,82,0.4); color:var(--high);">
         <i class="bi bi-filetype-pdf"></i> PDF
@@ -129,19 +400,37 @@
     <table class="ev-table" id="invoiceTable">
       <thead>
         <tr>
-          <th onclick="quickSort('source')"  style="cursor:pointer; user-select:none;">Source File <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
-          <th onclick="quickSort('bill')"    style="cursor:pointer; user-select:none;">Bill No. <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
-          <th onclick="quickSort('date')"    style="cursor:pointer; user-select:none;">Date <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
-          <th onclick="quickSort('subtotal')"style="cursor:pointer; user-select:none;">Subtotal <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('source')"   style="cursor:pointer;">Source File <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('bill')"     style="cursor:pointer;">Bill No. <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('date')"     style="cursor:pointer;">Date <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('subtotal')" style="cursor:pointer;">Subtotal <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
           <th>Tax</th>
-          <th onclick="quickSort('total')"   style="cursor:pointer; user-select:none;">Grand Total <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
-          <th onclick="quickSort('conf')"    style="cursor:pointer; user-select:none;">Confidence <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
-          <th onclick="quickSort('risk')"    style="cursor:pointer; user-select:none;">Risk <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('total')"    style="cursor:pointer;">Grand Total <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('conf')"     style="cursor:pointer;">Confidence <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
+          <th onclick="quickSort('risk')"     style="cursor:pointer;">Risk Score <i class="bi bi-arrow-down-up" style="font-size:0.65rem; opacity:0.4;"></i></th>
           {% if role == 'admin' %}<th style="width:60px;"></th>{% endif %}
         </tr>
       </thead>
       <tbody id="tableBody">
         {% for inv in invoices %}
+        {# ── Compute risk score from available data ── #}
+        {% set conf = inv.confidence|float %}
+        {% set risk_lower = inv.risk|lower %}
+        {% if risk_lower == 'high' %}
+          {% set base_score = 75 %}
+        {% elif risk_lower == 'medium' %}
+          {% set base_score = 45 %}
+        {% else %}
+          {% set base_score = 15 %}
+        {% endif %}
+        {% set has_bill    = 1 if inv.bill_number  else 0 %}
+        {% set has_date    = 1 if inv.invoice_date else 0 %}
+        {% set has_total   = 1 if inv.grand_total  else 0 %}
+        {% set has_sub     = 1 if inv.subtotal     else 0 %}
+        {% set completeness = (has_bill + has_date + has_total + has_sub) * 25 %}
+        {% set conf_penalty = ((1 - conf) * 20)|round(0)|int %}
+        {% set risk_score = [0, [100, base_score + conf_penalty + (100 - completeness) // 5]|min]|max %}
+
         <tr class="table-row"
             data-risk="{{ inv.risk|lower }}"
             data-source="{{ inv.source_file or '' }}"
@@ -151,7 +440,10 @@
             data-tax="{{ inv.tax_amount or 0 }}"
             data-total="{{ inv.grand_total or 0 }}"
             data-conf="{{ inv.confidence or 0 }}"
-            data-riskval="{{ inv.risk or '' }}">
+            data-riskval="{{ inv.risk or '' }}"
+            data-id="{{ inv.id }}"
+            onclick="toggleExplain({{ inv.id }})"
+            style="cursor:pointer;">
           <td>
             <span class="mono" style="color:var(--muted); font-size:0.78rem;">
               <i class="bi bi-file-text" style="margin-right:4px;"></i>
@@ -160,11 +452,10 @@
           </td>
           <td class="mono">{{ inv.bill_number or '—' }}</td>
           <td style="color:var(--muted); font-size:0.82rem;">{{ inv.invoice_date or '—' }}</td>
-          <td class="mono">{% if inv.subtotal %}₹{{ inv.subtotal|int }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if inv.subtotal %}₹{{ inv.subtotal|int }}{% else %}<span style="color:var(--high); font-size:0.7rem;">MISSING</span>{% endif %}</td>
           <td class="mono">{% if inv.tax_amount %}₹{{ inv.tax_amount|int }}{% else %}—{% endif %}</td>
-          <td class="mono" style="font-weight:600;">{% if inv.grand_total %}₹{{ inv.grand_total|int }}{% else %}—{% endif %}</td>
+          <td class="mono" style="font-weight:600;">{% if inv.grand_total %}₹{{ inv.grand_total|int }}{% else %}<span style="color:var(--high); font-size:0.7rem;">MISSING</span>{% endif %}</td>
           <td>
-            {% set conf = inv.confidence|float %}
             <div style="display:flex; align-items:center; gap:8px;">
               <div class="conf-bar">
                 <div class="conf-fill {% if conf < 0.5 %}low-conf{% elif conf < 0.8 %}medium{% endif %}"
@@ -174,16 +465,28 @@
             </div>
           </td>
           <td>
-            {% if inv.risk|lower == 'high' %}
-              <span class="badge-high">HIGH</span>
-            {% elif inv.risk|lower == 'medium' %}
-              <span class="badge-medium">MEDIUM</span>
-            {% else %}
-              <span class="badge-low">LOW</span>
-            {% endif %}
+            {# Risk Score Visual ─ this is the key implementation requirement #}
+            <div class="risk-score-wrap">
+              <div class="risk-score-label">
+                {% if risk_lower == 'high' %}
+                  <span class="badge-high">HIGH</span>
+                {% elif risk_lower == 'medium' %}
+                  <span class="badge-medium">MEDIUM</span>
+                {% else %}
+                  <span class="badge-low">LOW</span>
+                {% endif %}
+                <span class="mono" style="font-size:0.7rem; color:var(--muted);">{{ risk_score }}/100</span>
+              </div>
+              <div class="risk-score-bar-bg">
+                <div class="risk-score-bar-fill {{ risk_lower }}"
+                     style="width:{{ risk_score }}%;"
+                     data-width="{{ risk_score }}">
+                </div>
+              </div>
+            </div>
           </td>
           {% if role == 'admin' %}
-          <td>
+          <td onclick="event.stopPropagation()">
             <button onclick="confirmDelete({{ inv.id }}, '{{ inv.source_file or 'this invoice' }}')"
                     title="Delete invoice"
                     style="background:none; border:none; cursor:pointer; color:var(--muted);
@@ -195,26 +498,120 @@
           </td>
           {% endif %}
         </tr>
+
+        {# ── PER-INVOICE EXPLAINABILITY ROW ── #}
+        <tr class="explain-panel" id="explain-{{ inv.id }}">
+          <td colspan="{% if role == 'admin' %}9{% else %}8{% endif %}" style="padding:0;">
+            <div class="explain-inner">
+              <div class="explain-title">
+                <i class="bi bi-cpu" style="margin-right:6px;"></i>
+                Risk Analysis — {{ inv.source_file or 'Invoice #' ~ inv.id }}
+              </div>
+
+              {# Build factors list based on data #}
+              <div class="explain-factors">
+                {# Confidence factor #}
+                {% if conf >= 0.9 %}
+                  <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> High Confidence ({{ (conf*100)|int }}%)</span>
+                {% elif conf >= 0.7 %}
+                  <span class="factor-chip warn"><i class="bi bi-exclamation-circle-fill"></i> Medium Confidence ({{ (conf*100)|int }}%)</span>
+                {% else %}
+                  <span class="factor-chip bad"><i class="bi bi-x-circle-fill"></i> Low Confidence ({{ (conf*100)|int }}%)</span>
+                {% endif %}
+
+                {# Bill number #}
+                {% if inv.bill_number %}
+                  <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> Bill No. Present</span>
+                {% else %}
+                  <span class="factor-chip bad"><i class="bi bi-x-circle-fill"></i> Bill No. Missing</span>
+                {% endif %}
+
+                {# Invoice date #}
+                {% if inv.invoice_date %}
+                  <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> Date Present</span>
+                {% else %}
+                  <span class="factor-chip bad"><i class="bi bi-x-circle-fill"></i> Date Missing</span>
+                {% endif %}
+
+                {# Grand total #}
+                {% if inv.grand_total %}
+                  <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> Grand Total Present</span>
+                {% else %}
+                  <span class="factor-chip bad"><i class="bi bi-x-circle-fill"></i> Grand Total Missing</span>
+                {% endif %}
+
+                {# Subtotal #}
+                {% if inv.subtotal %}
+                  <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> Subtotal Present</span>
+                {% else %}
+                  <span class="factor-chip warn"><i class="bi bi-exclamation-circle-fill"></i> Subtotal Missing</span>
+                {% endif %}
+
+                {# Total validation #}
+                {% if inv.subtotal and inv.tax_amount and inv.grand_total %}
+                  {% set calc = inv.subtotal + inv.tax_amount %}
+                  {% set diff = (calc - inv.grand_total)|abs %}
+                  {% if diff <= 1 %}
+                    <span class="factor-chip good"><i class="bi bi-check-circle-fill"></i> Total Verified (Subtotal + Tax = Grand Total)</span>
+                  {% else %}
+                    <span class="factor-chip bad"><i class="bi bi-x-circle-fill"></i> Total Mismatch (Diff: ₹{{ diff|int }})</span>
+                  {% endif %}
+                {% endif %}
+
+                {# Risk level chip #}
+                {% if risk_lower == 'high' %}
+                  <span class="factor-chip bad"><i class="bi bi-exclamation-triangle-fill"></i> Flagged: HIGH RISK — Manual review required</span>
+                {% elif risk_lower == 'medium' %}
+                  <span class="factor-chip warn"><i class="bi bi-exclamation-circle-fill"></i> Flagged: MEDIUM RISK — Review recommended</span>
+                {% else %}
+                  <span class="factor-chip good"><i class="bi bi-shield-check-fill"></i> Cleared: LOW RISK — No action needed</span>
+                {% endif %}
+              </div>
+
+              {# Big risk score bar #}
+              <div class="explain-score-row">
+                <div class="explain-score-number"
+                     style="color:{% if risk_lower == 'high' %}var(--high){% elif risk_lower == 'medium' %}var(--medium){% else %}var(--low){% endif %};">
+                  {{ risk_score }}
+                </div>
+                <div class="explain-score-bar-wrap">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span style="font-size:0.68rem; color:var(--muted); font-family:var(--font-mono);">RISK SCORE / 100</span>
+                    <span style="font-size:0.68rem; font-family:var(--font-mono);
+                           color:{% if risk_lower == 'high' %}var(--high){% elif risk_lower == 'medium' %}var(--medium){% else %}var(--low){% endif %};">
+                      {% if risk_score >= 60 %}HIGH RISK ZONE{% elif risk_score >= 30 %}MEDIUM RISK ZONE{% else %}SAFE ZONE{% endif %}
+                    </span>
+                  </div>
+                  <div class="explain-score-bar-bg">
+                    <div class="explain-score-bar-fill risk-score-bar-fill {{ risk_lower }}"
+                         style="width:{{ risk_score }}%;"></div>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                    <span style="font-size:0.6rem; color:var(--low); font-family:var(--font-mono);">0 — SAFE</span>
+                    <span style="font-size:0.6rem; color:var(--medium); font-family:var(--font-mono);">50</span>
+                    <span style="font-size:0.6rem; color:var(--high); font-family:var(--font-mono);">100 — CRITICAL</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>
 
-    <!-- No results message -->
     <div id="noResults" style="display:none; padding:40px; text-align:center; color:var(--muted);">
       <i class="bi bi-funnel" style="font-size:2rem; display:block; margin-bottom:10px;"></i>
       <p style="font-size:0.85rem;">No invoices match your filters.</p>
-      <button onclick="clearFilters()" class="btn-ev-outline" style="margin-top:12px; font-size:0.78rem;">
-        Clear Filters
-      </button>
+      <button onclick="clearFilters()" class="btn-ev-outline" style="margin-top:12px; font-size:0.78rem;">Clear Filters</button>
     </div>
 
     {% else %}
     <div style="padding:60px; text-align:center; color:var(--muted);">
       <i class="bi bi-inbox" style="font-size:2.5rem; display:block; margin-bottom:12px;"></i>
       <p style="font-size:0.9rem;">No invoices found. Upload or run batch processing to get started.</p>
-      <a href="/upload" class="btn-ev" style="margin-top:16px; text-decoration:none; display:inline-block;">
-        Upload Invoice
-      </a>
+      <a href="/upload" class="btn-ev" style="margin-top:16px; text-decoration:none; display:inline-block;">Upload Invoice</a>
     </div>
     {% endif %}
   </div>
@@ -231,50 +628,86 @@
   const totalRecords = {{ invoices|length }};
   var sortState = {};
 
+  // ── EXPLAINABILITY TOGGLE ─────────────────────────────────────────────────
+  var openExplain = null;
+
+  function toggleExplain(id) {
+    var panel = document.getElementById('explain-' + id);
+    if (!panel) return;
+
+    if (openExplain && openExplain !== id) {
+      var prev = document.getElementById('explain-' + openExplain);
+      if (prev) prev.classList.remove('open');
+    }
+
+    if (panel.classList.contains('open')) {
+      panel.classList.remove('open');
+      openExplain = null;
+    } else {
+      panel.classList.add('open');
+      openExplain = id;
+      // Animate score bar
+      setTimeout(function() {
+        var fill = panel.querySelector('.explain-score-bar-fill');
+        if (fill) {
+          var w = fill.style.width;
+          fill.style.width = '0%';
+          setTimeout(function() { fill.style.width = w; }, 50);
+        }
+      }, 50);
+    }
+  }
+
   // ── FILTER ────────────────────────────────────────────────────────────────
   function filterTable() {
-    var search  = document.getElementById('searchInput').value.toLowerCase().trim();
-    var risk    = document.getElementById('riskFilter').value.toLowerCase();
-    var minAmt  = parseFloat(document.getElementById('minAmount').value) || 0;
-    var maxAmt  = parseFloat(document.getElementById('maxAmount').value) || Infinity;
-    var dateFrom= document.getElementById('dateFrom').value;
-    var dateTo  = document.getElementById('dateTo').value;
-    var minConf = parseFloat(document.getElementById('confFilter').value) || 0;
-    var rows    = document.querySelectorAll('#tableBody .table-row');
-    var visible = 0;
+    var search   = document.getElementById('searchInput').value.toLowerCase().trim();
+    var risk     = document.getElementById('riskFilter').value.toLowerCase();
+    var minAmt   = parseFloat(document.getElementById('minAmount').value) || 0;
+    var maxAmt   = parseFloat(document.getElementById('maxAmount').value) || Infinity;
+    var dateFrom = document.getElementById('dateFrom').value;
+    var dateTo   = document.getElementById('dateTo').value;
+    var minConf  = parseFloat(document.getElementById('confFilter').value) || 0;
+    var rows     = document.querySelectorAll('#tableBody .table-row');
+    var visible  = 0;
 
-    // Search clear button
     document.getElementById('searchClear').style.display = search ? 'block' : 'none';
 
     rows.forEach(function(row) {
-      var text      = row.textContent.toLowerCase();
-      var rowRisk   = row.getAttribute('data-risk');
-      var rowTotal  = parseFloat(row.getAttribute('data-total')) || 0;
-      var rowConf   = parseFloat(row.getAttribute('data-conf')) || 0;
-      var rowDate   = row.getAttribute('data-date') || '';
+      var text     = row.textContent.toLowerCase();
+      var rowRisk  = row.getAttribute('data-risk');
+      var rowTotal = parseFloat(row.getAttribute('data-total')) || 0;
+      var rowConf  = parseFloat(row.getAttribute('data-conf'))  || 0;
+      var rowDate  = row.getAttribute('data-date') || '';
+      var rowId    = row.getAttribute('data-id');
 
-      var matchSearch = !search || text.includes(search);
-      var matchRisk   = !risk   || rowRisk === risk;
-      var matchAmount = rowTotal >= minAmt && rowTotal <= maxAmt;
-      var matchConf   = rowConf >= minConf;
-      var matchDateFrom = !dateFrom || rowDate >= dateFrom;
-      var matchDateTo   = !dateTo   || rowDate <= dateTo;
+      var ok = (!search   || text.includes(search))
+            && (!risk     || rowRisk === risk)
+            && (rowTotal >= minAmt && rowTotal <= maxAmt)
+            && (rowConf  >= minConf)
+            && (!dateFrom || rowDate >= dateFrom)
+            && (!dateTo   || rowDate <= dateTo);
 
-      if (matchSearch && matchRisk && matchAmount && matchConf && matchDateFrom && matchDateTo) {
-        row.style.display = ''; visible++;
-      } else {
-        row.style.display = 'none';
+      row.style.display = ok ? '' : 'none';
+      if (!ok && rowId) {
+        var ep = document.getElementById('explain-' + rowId);
+        if (ep) ep.classList.remove('open');
       }
+      if (ok) visible++;
     });
 
-    // Count label
+    // Also hide explain rows for hidden main rows
+    document.querySelectorAll('.explain-panel').forEach(function(ep) {
+      var id  = ep.id.replace('explain-', '');
+      var row = document.querySelector('[data-id="' + id + '"]');
+      if (row && row.style.display === 'none') ep.classList.remove('open');
+    });
+
     var label = document.getElementById('countLabel');
     var anyFilter = search || risk || minAmt > 0 || maxAmt < Infinity || dateFrom || dateTo || minConf > 0;
     label.textContent = anyFilter
       ? visible + ' of ' + totalRecords + ' records'
       : totalRecords + ' records';
 
-    // No results
     var noRes = document.getElementById('noResults');
     if (noRes) noRes.style.display = (visible === 0 && totalRecords > 0) ? 'block' : 'none';
 
@@ -287,14 +720,11 @@
   }
 
   function clearFilters() {
-    document.getElementById('searchInput').value = '';
-    document.getElementById('riskFilter').value  = '';
-    document.getElementById('minAmount').value   = '';
-    document.getElementById('maxAmount').value   = '';
-    document.getElementById('dateFrom').value    = '';
-    document.getElementById('dateTo').value      = '';
-    document.getElementById('confFilter').value  = '';
-    document.getElementById('sortBy').value      = '';
+    ['searchInput','riskFilter','minAmount','maxAmount','dateFrom','dateTo','confFilter','sortBy']
+      .forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.value = '';
+      });
     document.getElementById('searchClear').style.display = 'none';
     filterTable();
     if (typeof showToast === 'function') showToast('All filters cleared.', 'info');
@@ -304,37 +734,34 @@
   function updateChips() {
     var chips = document.getElementById('filterChips');
     var items = [];
-    var risk = document.getElementById('riskFilter').value;
-    var minAmt = document.getElementById('minAmount').value;
-    var maxAmt = document.getElementById('maxAmount').value;
+    var risk     = document.getElementById('riskFilter').value;
+    var minAmt   = document.getElementById('minAmount').value;
+    var maxAmt   = document.getElementById('maxAmount').value;
     var dateFrom = document.getElementById('dateFrom').value;
     var dateTo   = document.getElementById('dateTo').value;
-    var conf = document.getElementById('confFilter').value;
+    var conf     = document.getElementById('confFilter').value;
 
-    if (risk) items.push({ label: 'Risk: ' + risk.toUpperCase(), clear: function() { document.getElementById('riskFilter').value = ''; filterTable(); }});
-    if (minAmt) items.push({ label: 'Min ₹' + minAmt, clear: function() { document.getElementById('minAmount').value = ''; filterTable(); }});
-    if (maxAmt) items.push({ label: 'Max ₹' + maxAmt, clear: function() { document.getElementById('maxAmount').value = ''; filterTable(); }});
-    if (dateFrom) items.push({ label: 'From ' + dateFrom, clear: function() { document.getElementById('dateFrom').value = ''; filterTable(); }});
-    if (dateTo)   items.push({ label: 'To ' + dateTo,   clear: function() { document.getElementById('dateTo').value = ''; filterTable(); }});
-    if (conf) items.push({ label: 'Conf ≥ ' + (conf*100) + '%', clear: function() { document.getElementById('confFilter').value = ''; filterTable(); }});
+    if (risk)     items.push({ label:'Risk: '+risk.toUpperCase(), fn: function(){ document.getElementById('riskFilter').value=''; filterTable(); }});
+    if (minAmt)   items.push({ label:'Min ₹'+minAmt,             fn: function(){ document.getElementById('minAmount').value=''; filterTable(); }});
+    if (maxAmt)   items.push({ label:'Max ₹'+maxAmt,             fn: function(){ document.getElementById('maxAmount').value=''; filterTable(); }});
+    if (dateFrom) items.push({ label:'From '+dateFrom,           fn: function(){ document.getElementById('dateFrom').value=''; filterTable(); }});
+    if (dateTo)   items.push({ label:'To '+dateTo,               fn: function(){ document.getElementById('dateTo').value=''; filterTable(); }});
+    if (conf)     items.push({ label:'Conf ≥'+(conf*100)+'%',    fn: function(){ document.getElementById('confFilter').value=''; filterTable(); }});
 
-    if (items.length === 0) { chips.style.display = 'none'; chips.innerHTML = ''; return; }
+    if (!items.length) { chips.style.display='none'; chips.innerHTML=''; return; }
     chips.style.display = 'flex';
-    chips.innerHTML = items.map(function(item, i) {
-      return '<span onclick="chipClear(' + i + ')" style="display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-family:\'Space Mono\',monospace; font-size:0.6rem; letter-spacing:0.05em; background:rgba(201,168,76,0.1); border:1px solid rgba(201,168,76,0.35); color:var(--accent2); cursor:pointer;">'
+    window._chipFns = items.map(function(i){ return i.fn; });
+    chips.innerHTML = items.map(function(item, i){
+      return '<span onclick="window._chipFns['+i+']()" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-family:var(--font-mono);font-size:0.6rem;letter-spacing:0.05em;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.35);color:var(--accent2);cursor:pointer;">'
         + item.label + ' <i class="bi bi-x" style="font-size:0.7rem;"></i></span>';
     }).join('');
-    window._chipClears = items.map(function(i) { return i.clear; });
   }
-
-  function chipClear(i) { window._chipClears[i](); }
 
   // ── SORT ──────────────────────────────────────────────────────────────────
   function sortTable() {
     var val = document.getElementById('sortBy').value;
     if (!val) return;
-    var parts = val.split('-');
-    var key = parts[0], dir = parts[1];
+    var parts = val.split('-'), key = parts[0], dir = parts[1];
     sortRows(key, dir);
   }
 
@@ -343,7 +770,7 @@
     sortRows(col, sortState[col]);
   }
 
-  var riskOrder = { high: 0, medium: 1, low: 2 };
+  var riskOrder = { high:0, medium:1, low:2 };
 
   function sortRows(key, dir) {
     var tbody = document.getElementById('tableBody');
@@ -352,26 +779,32 @@
 
     rows.sort(function(a, b) {
       var av, bv;
-      if (key === 'total' || key === 'subtotal' || key === 'conf') {
-        av = parseFloat(a.getAttribute('data-' + (key === 'subtotal' ? 'subtotal' : key === 'conf' ? 'conf' : 'total'))) || 0;
-        bv = parseFloat(b.getAttribute('data-' + (key === 'subtotal' ? 'subtotal' : key === 'conf' ? 'conf' : 'total'))) || 0;
+      if (['total','subtotal','conf'].includes(key)) {
+        av = parseFloat(a.getAttribute('data-'+key)) || 0;
+        bv = parseFloat(b.getAttribute('data-'+key)) || 0;
         return dir === 'asc' ? av - bv : bv - av;
       } else if (key === 'date') {
         av = a.getAttribute('data-date') || '';
         bv = b.getAttribute('data-date') || '';
         return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
       } else if (key === 'risk') {
-        av = riskOrder[a.getAttribute('data-risk')] !== undefined ? riskOrder[a.getAttribute('data-risk')] : 99;
-        bv = riskOrder[b.getAttribute('data-risk')] !== undefined ? riskOrder[b.getAttribute('data-risk')] : 99;
-        return dir === 'high' || dir === 'asc' ? av - bv : bv - av;
+        av = riskOrder[a.getAttribute('data-risk')] ?? 99;
+        bv = riskOrder[b.getAttribute('data-risk')] ?? 99;
+        return (dir === 'high' || dir === 'asc') ? av - bv : bv - av;
       } else {
-        av = (a.getAttribute('data-' + key) || '').toLowerCase();
-        bv = (b.getAttribute('data-' + key) || '').toLowerCase();
+        av = (a.getAttribute('data-'+key) || '').toLowerCase();
+        bv = (b.getAttribute('data-'+key) || '').toLowerCase();
         return dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
       }
     });
 
-    rows.forEach(function(r) { tbody.appendChild(r); });
+    // Re-insert main rows + their explain panels together
+    rows.forEach(function(r) {
+      var id = r.getAttribute('data-id');
+      tbody.appendChild(r);
+      var ep = document.getElementById('explain-' + id);
+      if (ep) tbody.appendChild(ep);
+    });
   }
 
   // ── EXPORT CSV ────────────────────────────────────────────────────────────
@@ -388,11 +821,11 @@
         row.dataset.subtotal, row.dataset.tax, row.dataset.total,
         row.dataset.conf, row.dataset.riskval
       ];
-      csvRows.push(cols.map(function(v) { return '"' + (v || '') + '"'; }).join(','));
+      csvRows.push(cols.map(function(v){ return '"'+(v||'')+'"'; }).join(','));
       count++;
     });
 
-    var blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+    var blob = new Blob([csvRows.join('\n')], { type:'text/csv' });
     var url  = URL.createObjectURL(blob);
     var a    = document.createElement('a');
     a.href = url; a.download = 'evidentia_invoices.csv'; a.click();
@@ -406,36 +839,31 @@
       alert('PDF library loading... please try again in a moment.'); return;
     }
     var { jsPDF } = window.jspdf;
-    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    var doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
 
-    // Header
     doc.setFillColor(10, 10, 15);
     doc.rect(0, 0, 297, 25, 'F');
     doc.setTextColor(0, 255, 170);
     doc.setFontSize(14);
-    doc.setFont('courier', 'bold');
+    doc.setFont('courier','bold');
     doc.text('EVIDENTIA — Invoice Export Report', 14, 10);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text('Generated: ' + new Date().toLocaleString(), 14, 17);
     doc.text('GLA University | Financial Document Intelligence System', 200, 17);
 
-    // Table data
-    var rows  = document.querySelectorAll('#tableBody .table-row');
-    var body  = [];
-    var count = 0;
+    var rows = document.querySelectorAll('#tableBody .table-row');
+    var body = [], count = 0;
 
     rows.forEach(function(row) {
       if (row.style.display === 'none') return;
       body.push([
-        row.dataset.source || '—',
-        row.dataset.bill   || '—',
-        row.dataset.date   || '—',
-        row.dataset.subtotal ? '₹' + parseInt(row.dataset.subtotal).toLocaleString() : '—',
-        row.dataset.tax      ? '₹' + parseInt(row.dataset.tax).toLocaleString()      : '—',
-        row.dataset.total    ? '₹' + parseInt(row.dataset.total).toLocaleString()    : '—',
-        row.dataset.conf ? (parseFloat(row.dataset.conf)*100).toFixed(0) + '%' : '—',
-        (row.dataset.riskval || '—').toUpperCase()
+        row.dataset.source||'—', row.dataset.bill||'—', row.dataset.date||'—',
+        row.dataset.subtotal ? '₹'+parseInt(row.dataset.subtotal).toLocaleString() : '—',
+        row.dataset.tax      ? '₹'+parseInt(row.dataset.tax).toLocaleString()      : '—',
+        row.dataset.total    ? '₹'+parseInt(row.dataset.total).toLocaleString()    : '—',
+        row.dataset.conf ? (parseFloat(row.dataset.conf)*100).toFixed(0)+'%' : '—',
+        (row.dataset.riskval||'—').toUpperCase()
       ]);
       count++;
     });
@@ -445,23 +873,23 @@
       head: [['Source File','Bill No.','Date','Subtotal','Tax','Grand Total','Confidence','Risk']],
       body: body,
       theme: 'grid',
-      styles: { font: 'courier', fontSize: 8, cellPadding: 3, textColor: [220, 220, 220], fillColor: [18, 18, 24] },
-      headStyles: { fillColor: [0, 40, 30], textColor: [0, 255, 170], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [22, 22, 30] },
+      styles: { font:'courier', fontSize:8, cellPadding:3, textColor:[220,220,220], fillColor:[18,18,24] },
+      headStyles: { fillColor:[0,40,30], textColor:[0,255,170], fontStyle:'bold' },
+      alternateRowStyles: { fillColor:[22,22,30] },
       didParseCell: function(data) {
-        if (data.section === 'body' && data.column.index === 7) {
+        if (data.section==='body' && data.column.index===7) {
           var risk = data.cell.raw.toLowerCase();
-          if (risk === 'high')   data.cell.styles.textColor = [224, 82, 82];
-          if (risk === 'medium') data.cell.styles.textColor = [240, 165, 0];
-          if (risk === 'low')    data.cell.styles.textColor = [0, 200, 120];
+          if (risk==='high')   data.cell.styles.textColor=[224,82,82];
+          if (risk==='medium') data.cell.styles.textColor=[240,165,0];
+          if (risk==='low')    data.cell.styles.textColor=[0,200,120];
         }
       },
-      foot: [['Total: ' + count + ' records', '', '', '', '', '', '', '']],
-      footStyles: { fillColor: [10, 10, 15], textColor: [100, 100, 100], fontSize: 7 }
+      foot: [['Total: '+count+' records','','','','','','','']],
+      footStyles: { fillColor:[10,10,15], textColor:[100,100,100], fontSize:7 }
     });
 
-    doc.save('evidentia_invoices_' + new Date().toISOString().slice(0,10) + '.pdf');
-    if (typeof showToast === 'function') showToast(count + ' invoice(s) exported to PDF.', 'success');
+    doc.save('evidentia_invoices_'+new Date().toISOString().slice(0,10)+'.pdf');
+    if (typeof showToast === 'function') showToast(count+' invoice(s) exported to PDF.', 'success');
   }
 </script>
 {% endblock %}
