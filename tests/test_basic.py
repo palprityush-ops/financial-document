@@ -64,6 +64,32 @@ def test_low_confidence_increases_risk():
     assert risk in ["medium", "high"], f"Expected medium or high, got {risk}"
 
 
+def test_risk_level_is_string():
+    """calculate_risk_level should always return a string."""
+    invoice = {"grand_total": 500.0, "bill_number": "INV-010"}
+    risk = calculate_risk_level(invoice)
+    assert isinstance(risk, str)
+
+
+def test_risk_level_valid_values():
+    """Risk level must be one of the three valid values."""
+    invoice = {"grand_total": 500.0, "bill_number": "INV-011", "confidence": 0.8}
+    risk = calculate_risk_level(invoice)
+    assert risk in ["low", "medium", "high"]
+
+
+def test_high_risk_zero_grand_total():
+    """Invoice with zero grand total should not be low risk."""
+    invoice = {
+        "grand_total": 0,
+        "bill_number": "INV-012",
+        "invoice_date": "2024-01-01",
+        "confidence": 0.9,
+    }
+    risk = calculate_risk_level(invoice)
+    assert risk in ["medium", "high"]
+
+
 # ── Analyze Risk (Batch) Tests ────────────────────────────────────────────────
 
 
@@ -101,6 +127,28 @@ def test_analyze_risk_empty_batch():
     assert result["high_risk_percentage"] == 0.0
     assert result["manual_review_required"] is False
     assert result["risk_distribution"]["high"] == 0
+
+
+def test_analyze_risk_all_high():
+    """All-high batch should have 100% high risk percentage."""
+    batch = [{"risk": "high"}] * 5
+    result = analyze_risk(batch)
+    assert result["risk_distribution"]["high"] == 5
+    assert result["manual_review_required"] is True
+
+
+def test_analyze_risk_all_low():
+    """All-low batch should not trigger manual review."""
+    batch = [{"risk": "low"}] * 10
+    result = analyze_risk(batch)
+    assert result["manual_review_required"] is False
+    assert result["risk_distribution"]["high"] == 0
+
+
+def test_analyze_risk_returns_dict():
+    """analyze_risk should always return a dict."""
+    result = analyze_risk([])
+    assert isinstance(result, dict)
 
 
 # ── Batch Summary Tests ───────────────────────────────────────────────────────
@@ -174,6 +222,33 @@ def test_extractor_returns_required_keys():
         assert key in result, f"Missing key: {key}"
 
 
+def test_extractor_confidence_range():
+    """Confidence score should always be between 0 and 1."""
+    texts = [
+        "bill no 999 date 01-01-2024 sub total 500 tax 90 grand total 590",
+        "random garbage text",
+        "",
+    ]
+    for text in texts:
+        result = extract_invoice_data(text)
+        assert 0.0 <= result["confidence"] <= 1.0, (
+            f"Confidence out of range for: {text!r}"
+        )
+
+
+def test_extractor_issues_is_list():
+    """Issues field should always be a list."""
+    result = extract_invoice_data("some text without invoice data")
+    assert isinstance(result["issues"], list)
+
+
+def test_extractor_empty_string():
+    """Empty string input should not crash the extractor."""
+    result = extract_invoice_data("")
+    assert "risk_level" in result
+    assert "confidence" in result
+
+
 # ── Validator Tests ───────────────────────────────────────────────────────────
 
 
@@ -206,3 +281,27 @@ def test_validator_allows_rounding():
     issues = []
     result = validate_totals(1000, 180, 1181, issues)
     assert result is True
+
+
+def test_validator_zero_tax():
+    """Zero tax with matching grand total should pass."""
+    issues = []
+    result = validate_totals(2000, 0, 2000, issues)
+    assert result is True
+    assert len(issues) == 0
+
+
+def test_validator_large_values():
+    """Large invoice values should validate correctly."""
+    issues = []
+    result = validate_totals(1_000_000, 180_000, 1_180_000, issues)
+    assert result is True
+    assert len(issues) == 0
+
+
+def test_validator_negative_values():
+    """Negative values should fail validation."""
+    issues = []
+    result = validate_totals(-500, 0, -500, issues)
+    assert result is False
+    assert len(issues) > 0
