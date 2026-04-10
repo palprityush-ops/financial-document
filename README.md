@@ -1,37 +1,21 @@
-# Evidentia — Financial Document Intelligence System
+<div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.x-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green)
-![Flask](https://img.shields.io/badge/Flask-Frontend-lightgrey)
+# Evidentia
+### Financial Document Intelligence System
+
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square)
+![Flask](https://img.shields.io/badge/Flask-Frontend-lightgrey?style=flat-square)
 ![CI](https://github.com/palprityush-ops/financial-document/actions/workflows/ci.yml/badge.svg)
-![Tests](https://img.shields.io/badge/Tests-9%20Passing-brightgreen)
-![Security](https://img.shields.io/badge/Security-79%2F100-yellow)
-![Live](https://img.shields.io/badge/Status-Live-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-9%20Passing-brightgreen?style=flat-square)
+![Security](https://img.shields.io/badge/Security-79%2F100-yellow?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square)
 
-A production-oriented financial document analysis platform that automates invoice extraction, validation, risk scoring, and explainability through a structured backend processing pipeline and REST API architecture.
+**Automates invoice extraction, validation, risk scoring, and explainability through a structured backend pipeline and REST API.**
 
----
+[Live Demo](https://evidentia-frontend.onrender.com) · [API Docs](https://financial-document-2.onrender.com/docs) · [Backend API](https://financial-document-2.onrender.com)
 
-## 🌐 Live Demo
-
-| Service | URL |
-|---|---|
-| Frontend | https://evidentia-frontend.onrender.com |
-| Backend API | https://financial-document-2.onrender.com |
-| API Docs (Swagger) | https://financial-document-2.onrender.com/docs |
-
----
-
-## 👥 Team
-
-| Name | Roll Number | Role |
-|---|---|---|
-| Prityush Pal | 2415500358 | Backend, DevOps, CI/CD |
-| Ishika Bharti | 2415500206 | Frontend, Testing, Documentation |
-
-**Mentor:** Mr. Preshit Desai
-**Institution:** GLA University, Mathura
-**Program:** BTech — Computer Science (2024–2026)
+</div>
 
 ---
 
@@ -39,96 +23,68 @@ A production-oriented financial document analysis platform that automates invoic
 
 Evidentia transforms unstructured financial documents into structured, validated, and risk-evaluated data for auditability and analytical insight.
 
-The system processes invoices through a multi-stage pipeline that performs:
+The system processes invoices through a multi-stage pipeline:
 
-- OCR text cleaning and preprocessing
-- Structured field extraction
-- Data validation and integrity checks
-- Confidence scoring
-- Risk assessment with explainability
-- Persistent storage and analytics reporting
-- User authentication with JWT tokens
-- Rate-limited and secured REST API
+```
+OCR Cleaning → Field Extraction → Validation → Risk Scoring → Explainability → Storage
+```
 
-The backend is built with FastAPI and exposes secure REST endpoints.
-A Flask-based frontend provides an interactive dark-theme dashboard for document exploration and filtering.
+The backend is built with **FastAPI** and exposes secure REST endpoints. A **Flask** frontend provides an interactive dark-theme dashboard with visual risk scoring, per-invoice explainability panels, and portfolio-level analytics.
 
 ---
 
-## Core Capabilities
+## Features
 
-- Automated invoice field extraction
-- Rule-based validation engine
-- Risk scoring with explainability output (LOW / MEDIUM / HIGH)
-- Confidence scoring mechanism
-- Batch processing support with audit logs
-- SQLite-based persistence layer
-- JWT-based user authentication (Login + Signup)
-- API key authentication for protected endpoints
-- Rate limiting (5 login attempts/min)
-- Security headers (XSS, CSRF, Clickjacking protection)
-- Pagination and filtering endpoints
-- Continuous Integration with automated testing and formatting checks
+| Feature | Description |
+|---|---|
+| 📄 Invoice Extraction | Automated field extraction from uploaded documents |
+| ✅ Validation Engine | Rule-based integrity checks on extracted data |
+| 🎯 Risk Scoring | LOW / MEDIUM / HIGH classification with confidence scores |
+| 🔍 Explainability | Per-invoice breakdown of risk factors with visual indicators |
+| 📊 Dashboard Analytics | Portfolio risk exposure meter, charts, and trend views |
+| 🔐 Authentication | JWT-based login/signup with bcrypt password hashing |
+| 🛡️ Security | CSRF protection, rate limiting, security headers |
+| 📦 Batch Processing | Bulk invoice pipeline with audit logs |
+| 🔄 CI/CD | GitHub Actions with automated tests and formatting checks |
+
+---
+
+## Live Services
+
+| Service | URL |
+|---|---|
+| Frontend | https://evidentia-frontend.onrender.com |
+| Backend API | https://financial-document-2.onrender.com |
+| Swagger Docs | https://financial-document-2.onrender.com/docs |
+
+---
+
+## Tech Stack
+
+**Backend** — Python 3.x, FastAPI, Uvicorn, PyJWT, bcrypt, slowapi
+
+**Frontend** — Flask, HTML/CSS (dark theme), Bootstrap 5, Chart.js, Flask-WTF
+
+**Database** — SQLite (`invoices`, `risk_explanations`, `users` tables)
+
+**DevOps** — GitHub Actions, Render.com, Docker (GHCR), UptimeRobot, Black, Pytest
 
 ---
 
 ## System Architecture
 
 ```
-User (Browser)
-  └── Flask Frontend (Dark Theme Dashboard)
-        └── FastAPI Backend (REST API)
+Browser
+  └── Flask Frontend  (dark theme dashboard, risk visualization)
+        └── FastAPI Backend  (REST API, JWT auth, rate limiting)
               └── Processing Pipeline
-                    └── SQLite Database
+                    ├── OCR Cleaning         process_text.py
+                    ├── Field Extraction     extractor.py
+                    ├── Validation           validator.py
+                    ├── Risk & Confidence    analytics/
+                    ├── Explainability       analytics/explainability.py
+                    └── Persistence          db/
 ```
-
-### Processing Pipeline Stages
-
-1. OCR Cleaning (`process_text.py`)
-2. Field Extraction (`extractor.py`)
-3. Validation (`validator.py`)
-4. Confidence & Risk Scoring (`analytics/`)
-5. Explainability Generation (`analytics/explainability.py`)
-6. Persistence (`db/`)
-7. CSV Export + Audit Logging
-
-Each processed document is stored with structured metadata and scoring outputs for traceability.
-
----
-
-## Technology Stack
-
-### Backend
-- Python 3.x
-- FastAPI
-- Uvicorn
-- bcrypt (password hashing)
-- PyJWT (token authentication)
-- slowapi (rate limiting)
-
-### Frontend
-- Flask
-- HTML / CSS (custom dark theme)
-- Bootstrap 5
-- Chart.js
-
-### Database
-- SQLite (invoices, risk_explanations, users tables)
-
-### DevOps & CI
-- GitHub Actions (CI pipeline)
-- Render.com (cloud deployment)
-- UptimeRobot (uptime monitoring)
-- Black (code formatting)
-- Pytest (9 automated tests)
-
-### Deployment Resilience (Render DNS/Clone Failures)
-- Docker image publishing to GHCR via GitHub Actions (`.github/workflows/publish-images.yml`)
-- Backend image build file: `Dockerfile.backend`
-- Frontend image build file: `Dockerfile.frontend`
-- Render blueprint file: `render.yaml`
-- Recommended Render deploy mode: **Deploy from existing image**
-- Optional auto-redeploy trigger via Render deploy hooks (`RENDER_DEPLOY_HOOK_BACKEND`, `RENDER_DEPLOY_HOOK_FRONTEND`)
 
 ---
 
@@ -136,213 +92,170 @@ Each processed document is stored with structured metadata and scoring outputs f
 
 ```
 financial-document/
-│
-├── .github/
-│   └── workflows/
-│       └── ci.yml
-│
+├── .github/workflows/
+│   ├── ci.yml
+│   └── publish-images.yml
 ├── analytics/
 │   ├── analytics_engine.py
 │   ├── batch_metrics.py
 │   ├── explainability.py
 │   ├── item_analysis.py
 │   └── risk_analysis.py
-│
 ├── api/
 │   ├── main.py
 │   └── schemas.py
-│
 ├── db/
 │   ├── database.py
 │   ├── operations.py
 │   └── finance.db
-│
 ├── frontend/
 │   ├── app.py
 │   └── templates/
 │       ├── layout.html
 │       ├── dashboard.html
-│       ├── invoices.html
+│       ├── invoices.html        ← risk visualization + explainability
 │       ├── upload.html
 │       ├── batch.html
 │       ├── audit.html
 │       ├── login.html
 │       └── signup.html
-│
 ├── tests/
-│   └── test_basic.py          # 9 automated tests
-│
+│   └── test_basic.py
 ├── batch_runner.py
 ├── extractor.py
 ├── validator.py
 ├── process_text.py
 ├── export_csv.py
-├── requirements.txt
-├── .flake8
-└── README.md
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── render.yaml
+└── requirements.txt
 ```
 
 ---
 
-## Running the Project Locally
+## Local Setup
 
-### 1. Clone the Repository
+### 1. Clone
 
 ```bash
 git clone https://github.com/palprityush-ops/financial-document.git
 cd financial-document
 ```
 
-### 2. Create Virtual Environment
+### 2. Virtual environment
 
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Windows
-source venv/bin/activate     # macOS/Linux
+source venv/bin/activate     # macOS / Linux
 pip install -r requirements.txt
 ```
 
-### 3. Start Backend
+### 3. Start backend
 
 ```bash
 uvicorn api.main:app --reload
+# → http://127.0.0.1:8000
 ```
 
-API available at:
-
-```
-http://127.0.0.1:8000
-```
-
-### 4. Start Frontend
+### 4. Start frontend
 
 ```bash
 python frontend/app.py
-```
-
-Frontend available at:
-
-```
-http://127.0.0.1:5000
+# → http://127.0.0.1:5000
 ```
 
 ---
 
-## Render Setup (Avoid Git Clone Build Failures)
+## API Reference
 
-If Render fails with errors like "Could not resolve host: github.com" during clone, deploy from prebuilt images instead of source builds.
-
-1. Push to `main`.
-2. Wait for the GitHub Actions workflow `Publish Render Images` to complete.
-3. In Render, create/update two web services using existing images:
-      - `ghcr.io/<your-org-or-user>/financial-document-backend:latest`
-      - `ghcr.io/<your-org-or-user>/financial-document-frontend:latest`
-   You can also use the blueprint in `render.yaml`.
-4. Use these settings:
-      - Backend start command is already in image (`uvicorn api.main:app ...`)
-      - Frontend start command is already in image (`gunicorn app:app ...`)
-      - Health check path for both services: `/healthz`
-      - Add a Render registry credential named `ghcr-read` (or update `render.yaml` to your credential name)
-5. Set environment variables in Render:
-      - Frontend: `API_BASE`, `API_KEY`, `SECRET_KEY`, `ADMIN_SECRET_KEY`
-      - Backend: `API_KEY` (if customized), JWT/secret values as needed
-
-Important: image-backed services do not auto-deploy on tag updates by default. Use Manual Deploy, deploy hooks, or set deploy automation in your workflow.
-
-This bypasses repository clone/build failures on Render builder nodes.
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Access | Description |
+| Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/` | Public | Health check |
-| POST | `/auth/signup` | Public | Create new account |
-| POST | `/auth/login` | Public | Login and get JWT token |
-| POST | `/upload-invoice/` | Protected | Upload invoice file |
-| POST | `/run-batch/` | Protected | Run batch pipeline |
-| GET | `/invoices` | Public | Fetch all invoices |
-| GET | `/invoices/high-risk` | Public | Fetch high risk invoices |
+| POST | `/auth/signup` | Public | Create account |
+| POST | `/auth/login` | Public | Login → JWT token |
+| POST | `/upload-invoice/` | JWT | Upload invoice file |
+| POST | `/run-batch/` | JWT | Run batch pipeline |
+| GET | `/invoices` | Public | All invoices |
+| GET | `/invoices/high-risk` | Public | High-risk invoices |
 | GET | `/invoices/by-risk` | Public | Filter by risk level |
 | GET | `/invoices/by-date` | Public | Filter by date range |
-| GET | `/audit` | Protected | Fetch audit logs |
+| GET | `/audit` | JWT | Audit logs |
+
+Full interactive docs at `/docs` (Swagger UI).
 
 ---
 
-## Risk and Explainability Engine
+## Risk & Explainability Engine
 
-Invoices are evaluated using structured scoring mechanisms based on:
+Each invoice is evaluated against:
 
 - Missing mandatory fields (bill number, date, totals)
-- Inconsistent or mismatched totals
-- Suspicious numeric values
-- Structural anomalies
-- Low extraction confidence score
+- Total mismatch (subtotal + tax ≠ grand total)
+- Suspicious or anomalous numeric values
+- Structural extraction anomalies
+- Low confidence score from OCR stage
 
-Each flagged record includes a structured explanation describing why it was categorized as LOW, MEDIUM, or HIGH risk.
+Every flagged invoice includes a structured explanation panel in the frontend showing which checks failed and why the risk level was assigned.
 
 ---
 
-## Security Features
+## Security
 
-- JWT token-based authentication (24hr expiry)
+- JWT authentication (24-hour expiry)
 - bcrypt password hashing
-- Rate limiting on login (5 req/min) and signup (10 req/min)
-- Security headers: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options
+- CSRF protection on all POST forms (Flask-WTF)
+- Rate limiting — login: 5 req/min, signup: 10 req/min
+- Security headers: `X-Frame-Options`, `X-XSS-Protection`, `X-Content-Type-Options`
 - API key protection on sensitive endpoints
-- Input validation on all auth endpoints
 
 ---
 
-## Continuous Integration
-
-The GitHub Actions workflow automatically:
-
-- Installs all dependencies
-- Validates code formatting (Black)
-- Executes 9 automated tests (Pytest)
-
-The pipeline runs on every push to the main branch.
-
----
-
-## Testing
-
-Run tests locally:
+## Tests
 
 ```bash
-pytest tests
+pytest tests           # run all tests
+black --check .        # check formatting
 ```
-
-Check formatting:
-
-```bash
-black --check .
-```
-
-Current test coverage:
 
 | Test | Status |
 |---|---|
-| Database initialization | ✅ Pass |
-| High risk — missing fields | ✅ Pass |
-| Low risk — valid invoice | ✅ Pass |
-| Medium risk — partial fields | ✅ Pass |
-| Low confidence increases risk | ✅ Pass |
-| Batch risk distribution | ✅ Pass |
-| Manual review trigger | ✅ Pass |
-| No manual review | ✅ Pass |
-| Empty batch handling | ✅ Pass |
+| Database initialization | ✅ |
+| High risk — missing fields | ✅ |
+| Low risk — valid invoice | ✅ |
+| Medium risk — partial fields | ✅ |
+| Low confidence increases risk | ✅ |
+| Batch risk distribution | ✅ |
+| Manual review trigger | ✅ |
+| No manual review | ✅ |
+| Empty batch handling | ✅ |
 
 ---
 
-## Authors
+## Deployment on Render
 
-**Prityush Pal** — 2415500358
-BTech Computer Science — GLA University, Mathura
+If Render fails with clone errors (`Could not resolve host: github.com`), deploy from prebuilt Docker images instead.
 
-**Ishika Bharti** — 2415500206
-BTech Computer Science — GLA University, Mathura
+1. Push to `main` — GitHub Actions will publish images to GHCR automatically.
+2. In Render, create two web services using **existing image** deploy mode:
+   - `ghcr.io/palprityush-ops/financial-document-backend:latest`
+   - `ghcr.io/palprityush-ops/financial-document-frontend:latest`
+3. Health check path for both: `/healthz`
+4. Set environment variables:
+   - Frontend: `API_BASE`, `API_KEY`, `SECRET_KEY`, `ADMIN_SECRET_KEY`
+   - Backend: `API_KEY`, JWT secret values
 
-**Mentor:** Mr. Preshit Desai
+Images do not auto-deploy on push — trigger manually or configure deploy hooks via `RENDER_DEPLOY_HOOK_BACKEND` / `RENDER_DEPLOY_HOOK_FRONTEND`.
+
+---
+
+## Team
+
+| Name | Roll Number | Role |
+|---|---|---|
+| Prityush Pal | 2415500358 | Backend, DevOps, CI/CD |
+| Ishika Bharti | 2415500206 | Frontend, Testing, Documentation |
+
+**Mentor:** Mr. Preshit Desai  
+**Institution:** GLA University, Mathura — BTech Computer Science (2024–2026)
