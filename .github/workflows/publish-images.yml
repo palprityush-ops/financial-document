@@ -31,7 +31,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.backend
-          platforms: linux/amd64
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/financial-document-backend:latest
@@ -42,28 +41,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.frontend
-          platforms: linux/amd64
           push: true
           tags: |
             ghcr.io/${{ github.repository_owner }}/financial-document-frontend:latest
             ghcr.io/${{ github.repository_owner }}/financial-document-frontend:${{ github.sha }}
-
-      - name: Trigger Render backend deploy (optional)
-        env:
-          RENDER_DEPLOY_HOOK_BACKEND: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
-        run: |
-          if [ -n "$RENDER_DEPLOY_HOOK_BACKEND" ]; then
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_BACKEND"
-          else
-            echo "RENDER_DEPLOY_HOOK_BACKEND is not set; skipping backend deploy trigger."
-          fi
-
-      - name: Trigger Render frontend deploy (optional)
-        env:
-          RENDER_DEPLOY_HOOK_FRONTEND: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
-        run: |
-          if [ -n "$RENDER_DEPLOY_HOOK_FRONTEND" ]; then
-            curl -fsS -X POST "$RENDER_DEPLOY_HOOK_FRONTEND"
-          else
-            echo "RENDER_DEPLOY_HOOK_FRONTEND is not set; skipping frontend deploy trigger."
-          fi

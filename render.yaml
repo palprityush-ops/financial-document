@@ -4,10 +4,8 @@ services:
     runtime: image
     image:
       url: ghcr.io/palprityush-ops/financial-document-backend:latest
-      creds:
-        fromRegistryCreds:
-          name: ghcr-read
     plan: free
+    autoDeploy: true
     healthCheckPath: /healthz
     envVars:
       - key: API_KEY
@@ -20,14 +18,12 @@ services:
     runtime: image
     image:
       url: ghcr.io/palprityush-ops/financial-document-frontend:latest
-      creds:
-        fromRegistryCreds:
-          name: ghcr-read
     plan: free
+    autoDeploy: true
     healthCheckPath: /healthz
     envVars:
       - key: API_BASE
-        sync: false
+        value: https://financial-document-backend.onrender.com
       - key: API_KEY
         sync: false
       - key: SECRET_KEY
