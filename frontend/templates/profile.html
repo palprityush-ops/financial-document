@@ -29,6 +29,7 @@
         {% endif %}
 
         <form method="POST" action="/profile" onsubmit="return validateForm()">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div style="margin-bottom:18px;">
             <label class="ev-label">Current Password</label>
             <input type="password" name="old_password" id="old_password" required

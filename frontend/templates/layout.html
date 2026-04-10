@@ -684,6 +684,7 @@
         Cancel
       </button>
       <form id="deleteForm" method="POST" style="margin:0;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn-ev" style="background:var(--high);">
           <i class="bi bi-trash3"></i> Delete
         </button>

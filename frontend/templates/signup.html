@@ -432,6 +432,7 @@
 
         <!-- FORM -->
         <form method="POST" action="/signup" id="signupForm" novalidate>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <!-- USERNAME -->
           <div class="form-group">

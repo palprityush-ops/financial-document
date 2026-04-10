@@ -49,6 +49,7 @@
         </p>
 
         <form method="POST">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="btn-ev" style="width:100%; padding:14px;">
             <i class="bi bi-play-circle"></i> &nbsp;Run Batch Processing
           </button>
