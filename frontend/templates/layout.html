@@ -547,31 +547,72 @@
       .sidebar { display:none; }
       .main-content { margin-left:0; padding:18px; }
     }
+
     /* ── BOOTSTRAP OVERRIDE FOR DARK MODE ── */
-[data-theme="dark"] .card {
-  background: #111827 !important;
-  border-color: rgba(255,255,255,0.07) !important;
-  color: #f1f5f9 !important;
-}
+    [data-theme="dark"] .card {
+      background: #111827 !important;
+      border-color: rgba(255,255,255,0.07) !important;
+      color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .card-body {
+      background: #111827 !important;
+      color: #f1f5f9 !important;
+    }
+    [data-theme="dark"] .stat-card {
+      background: #111827 !important;
+      border-color: rgba(255,255,255,0.07) !important;
+    }
+    [data-theme="dark"] .p-4 {
+      background: transparent !important;
+    }
+    [data-theme="dark"] .card-header-custom {
+      background: #1e293b !important;
+      border-color: rgba(255,255,255,0.07) !important;
+    }
 
-[data-theme="dark"] .card-body {
-  background: #111827 !important;
-  color: #f1f5f9 !important;
-}
+    /* ── LOGIN PAGE LIGHT MODE FIX ── */
+    [data-theme="light"] .login-page {
+      background: var(--bg) !important;
+    }
+    [data-theme="light"] .brand-logo { color: var(--accent) !important; }
+    [data-theme="light"] .brand-sub  { color: var(--muted) !important; }
+    [data-theme="light"] .role-toggle {
+      background: #ffffff !important;
+      border-color: var(--border) !important;
+    }
+    [data-theme="light"] .role-btn { color: var(--muted) !important; }
+    [data-theme="light"] .login-card {
+      background: #ffffff !important;
+      border-color: var(--border) !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08) !important;
+    }
+    [data-theme="light"] .form-input,
+    [data-theme="light"] .ev-input {
+      background: #f0f8fe !important;
+      border-color: var(--border) !important;
+      color: var(--text) !important;
+    }
+    [data-theme="light"] .form-input::placeholder { color: #aac4d8 !important; }
+    [data-theme="light"] .form-label { color: var(--muted) !important; }
+    [data-theme="light"] .card-title { color: var(--accent) !important; }
+    [data-theme="light"] .card-desc  { color: var(--muted) !important; }
+    [data-theme="light"] .card-desc  { color: var(--muted) !important; }
+    [data-theme="light"] .login-footer { color: var(--muted) !important; }
+    [data-theme="light"] .access-level {
+      background: var(--accent-glow) !important;
+      border-color: var(--border) !important;
+      color: var(--accent) !important;
+    }
+    [data-theme="light"] .flash-msg {
+      background: rgba(220,38,38,0.08) !important;
+      border-color: rgba(220,38,38,0.25) !important;
+      color: #dc2626 !important;
+    }
+    [data-theme="light"] .login-wrapper a { color: var(--accent) !important; }
+    [data-theme="light"] .login-footer { color: var(--muted) !important; }
+    [data-theme="light"] .role-btn.active-admin { color: var(--accent) !important; }
+    [data-theme="light"] .role-btn.active-user  { color: #3a9fd6 !important; }
 
-[data-theme="dark"] .stat-card {
-  background: #111827 !important;
-  border-color: rgba(255,255,255,0.07) !important;
-}
-
-[data-theme="dark"] .p-4 {
-  background: transparent !important;
-}
-
-[data-theme="dark"] .card-header-custom {
-  background: #1e293b !important;
-  border-color: rgba(255,255,255,0.07) !important;
-}
   </style>
 
   {% block head %}{% endblock %}
