@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header fade-up fade-up-1">
   <h1>// UPLOAD INVOICE</h1>
-  <p>Upload a .txt or .pdf invoice file for analysis</p>
+  <p>Upload a .txt or text-based .pdf invoice file for analysis</p>
 </div>
 
 <div class="row g-4">
@@ -38,7 +38,10 @@
               Drag & drop your invoice file here
             </p>
             <p style="color:var(--muted); font-size:0.78rem;">
-              Supports: .txt and .pdf formats
+              Supports .txt and text-based .pdf files only
+            </p>
+            <p id="uploadHelper" style="color:var(--muted); font-size:0.72rem; margin-top:6px;">
+              Note: Scanned or image-based PDFs are not supported. Please upload machine-readable PDFs.
             </p>
             <!-- ✅ accept both .txt and .pdf -->
             <input type="file" id="fileInput" name="file" accept=".txt,.pdf"
@@ -76,9 +79,9 @@
       <div class="p-4">
         <div style="display:flex; flex-direction:column; gap:16px;">
           {% for step in [
-            ('1', 'bi-file-text', 'File Received', 'Invoice .txt or .pdf file is saved securely'),
-            ('2', 'bi-filetype-pdf', 'PDF Conversion', 'PDF text extracted automatically if needed'),
-            ('3', 'bi-cpu', 'Text Processing', 'OCR cleaning and field extraction'),
+            ('1', 'bi-file-text', 'File Received', 'Invoice .txt or text-based .pdf file is saved securely'),
+            ('2', 'bi-filetype-pdf', 'PDF text extraction', 'Text is extracted from text-based PDFs automatically'),
+            ('3', 'bi-cpu', 'Text Processing', 'Text cleaning and field extraction'),
             ('4', 'bi-shield-check', 'Validation', 'Math checks and integrity validation'),
             ('5', 'bi-graph-up', 'Risk Scoring', 'Confidence and risk level assigned'),
             ('6', 'bi-database', 'Stored', 'Result saved to database with audit log')
@@ -119,17 +122,15 @@ Sub Total 91000
 Tax 18 percent 16380
 Grand Total 107380</pre>
         </div>
-        <!-- PDF format -->
+        <!-- Text-based PDF format -->
         <div style="border-top:1px solid var(--border); padding-top:16px;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span class="badge-high" style="font-size:0.7rem;">PDF</span>
-            <span style="font-size:0.82rem; color:var(--text);">PDF invoice (text-based)</span>
+            <span class="badge-high" style="font-size:0.7rem;">Text-based PDF</span>
+            <span style="font-size:0.82rem; color:var(--text);">Text-based PDF invoice</span>
           </div>
           <p style="font-size:0.78rem; color:var(--muted); line-height:1.6;">
-            Upload any text-based PDF invoice. Text is extracted automatically and processed through the same pipeline.
-            <br><br>
-            <i class="bi bi-info-circle" style="color:var(--accent);"></i>
-            Scanned/image PDFs are not supported — use text-based PDFs only.
+            Text-based PDFs contain selectable, machine-readable text which we extract and process.
+            Scanned PDFs are images and require OCR, which is not supported in this version.
           </p>
         </div>
       </div>
@@ -144,6 +145,25 @@ const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const submitBtn = document.getElementById('submitBtn');
 const fileDisplay = document.getElementById('fileDisplay');
+const uploadHelper = document.getElementById('uploadHelper');
+
+function setClientError(msg) {
+  // show a client-side error alert above the upload area
+  let existing = document.getElementById('clientError');
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.id = 'clientError';
+    existing.className = 'ev-alert error';
+    existing.style.marginTop = '12px';
+    uploadHelper.parentNode.insertBefore(existing, uploadHelper.nextSibling);
+  }
+  existing.innerHTML = '<i class="bi bi-x-circle-fill"></i> ' + msg;
+}
+
+function clearClientError() {
+  const existing = document.getElementById('clientError');
+  if (existing) existing.remove();
+}
 
 dropZone.addEventListener('dragover', e => {
   e.preventDefault();
@@ -167,17 +187,37 @@ function handleFileSelect(input) {
 }
 
 function showFile(file) {
+  clearClientError();
   document.getElementById('fileName').textContent = file.name;
   document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-  // ✅ PDF vs TXT icon
   const icon = document.getElementById('fileIcon');
-  icon.className = file.name.endsWith('.pdf')
-    ? 'bi bi-file-pdf'
-    : 'bi bi-file-text';
-  icon.style.color = file.name.endsWith('.pdf') ? 'var(--high)' : 'var(--accent)';
+
+  const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+  icon.className = isPdf ? 'bi bi-file-pdf' : 'bi bi-file-text';
+  icon.style.color = isPdf ? 'var(--high)' : 'var(--accent)';
   fileDisplay.style.display = 'flex';
-  submitBtn.style.opacity = '1';
-  submitBtn.style.pointerEvents = 'auto';
+
+  if (!isPdf) {
+    submitBtn.style.opacity = '1';
+    submitBtn.style.pointerEvents = 'auto';
+    return;
+  }
+
+  // For PDFs, do a lightweight client-side heuristic to detect whether the PDF contains selectable text.
+  detectPDFText(file).then(isTextBased => {
+    if (isTextBased) {
+      submitBtn.style.opacity = '1';
+      submitBtn.style.pointerEvents = 'auto';
+    } else {
+      submitBtn.style.opacity = '0.4';
+      submitBtn.style.pointerEvents = 'none';
+      setClientError('Unsupported file: Please upload a text-based PDF or .txt invoice.');
+    }
+  }).catch(err => {
+    // if detection fails, allow upload but show helper note
+    submitBtn.style.opacity = '1';
+    submitBtn.style.pointerEvents = 'auto';
+  });
 }
 
 function clearFile() {
@@ -185,6 +225,31 @@ function clearFile() {
   fileDisplay.style.display = 'none';
   submitBtn.style.opacity = '0.4';
   submitBtn.style.pointerEvents = 'none';
+  clearClientError();
+}
+
+function detectPDFText(file) {
+  return new Promise((resolve, reject) => {
+    try {
+      // Read the first chunk of the file (200KB) and search for PDF text operators or font info.
+      const slice = file.slice(0, 200000);
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const arr = new Uint8Array(e.target.result);
+          // decode using latin1 to preserve byte values
+          const text = new TextDecoder('latin1').decode(arr);
+          // heuristics: look for common text operators or font dictionaries
+          const hasTextOps = /\/Tj|\/TJ|\/Font|\/F1|\/F2|BT|ET|\/FontName/.test(text);
+          resolve(Boolean(hasTextOps));
+        } catch (err) {
+          resolve(false);
+        }
+      };
+      reader.onerror = function() { reject(new Error('read-error')); };
+      reader.readAsArrayBuffer(slice);
+    } catch (err) { reject(err); }
+  });
 }
 </script>
 {% endblock %}
